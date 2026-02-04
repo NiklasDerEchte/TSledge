@@ -3,10 +3,10 @@ import { Codec, FluentResponse, JoinRelation, QueryParameters, QueryRequestConfi
 
 export class QueryBuilder {
   private _config: QueryRequestConfig;
-  private _match: Record<string, any> = {};
+  private _matchConditions: Record<string, any> = {};
   private _stages: any[] = [];
   private _relations: JoinRelation[] = [];
-  private _unset: string[] = [];
+  private _unsetFields: string[] = [];
 
   constructor(config: QueryRequestConfig) {
     this._config = config;
@@ -27,27 +27,26 @@ export class QueryBuilder {
 
   /**
    * Adds match conditions to the query builder.
-   * @param match
-   * @param conjunction
-   * @param append
-   * @returns
+   * @param match - The match conditions to add.
+   * @param conjunction - The logical conjunction ('and' or 'or').
+   * @param append - Whether to append to existing conditions or replace them.
    */
   match(
     match: Record<string, any> | Record<string, any>[],
     conjunction: string = 'and',
     append: boolean = true
   ) {
-    if (!match || Object.keys(match).length === 0) return;
+    if (!match || (Array.isArray(match) ? match.length === 0 : Object.keys(match).length === 0)) return;
     if (!append) {
-      this._match = match;
+      this._matchConditions = Array.isArray(match) ? { $and: match } : match;
       return;
     }
     const key = `$${conjunction}`;
-    if (!this._match[key]) this._match[key] = [];
+    if (!this._matchConditions[key]) this._matchConditions[key] = [];
     if (Array.isArray(match)) {
-      this._match[key].push(...match);
+      this._matchConditions[key].push(...match);
     } else {
-      this._match[key].push(match);
+      this._matchConditions[key].push(match);
     }
   }
 
@@ -140,24 +139,25 @@ export class QueryBuilder {
 
   /**
    * Generates the list of fields to unset based on schema select options.
-   * @param config
+   * @param config - The query request configuration.
    */
   private _generateSchemaUnsetList(config: QueryRequestConfig) {
-    this._unset = [];
+    this._unsetFields = [];
     let unset = this._collectSelectFalse(config.model.schema, undefined, config.select);
     for (const relation of this._relations) {
       unset = unset.concat(
         this._collectSelectFalse(relation.ref.schema, relation.alias, config.select)
       );
     }
-    this._unset = Array.from(new Set(unset));
+    this._unsetFields = Array.from(new Set(unset));
   }
 
   /**
    * Collects paths from the schema where select is set to false.
-   * @param schema
-   * @param prefix
-   * @returns
+   * @param schema - The Mongoose schema to scan.
+   * @param prefix - Optional prefix for nested paths.
+   * @param select - Optional array of fields to select.
+   * @returns Array of paths to unset.
    */
   private _collectSelectFalse(
     schema: mongoose.Schema,
@@ -166,51 +166,50 @@ export class QueryBuilder {
   ): string[] {
     const unset: string[] = [];
     schema.eachPath((path: string, schematype: any) => {
-      if (select && select.length > 0) {
-        if (select.includes(path)) {
-          return;
-        }
+      // If select is specified, only consider fields not in select or with select: false
+      if (select && select.length > 0 && !select.includes(path) && schematype?.options?.select !== false) {
+        return;
       }
       if (schematype?.options?.select === false) {
-        unset.push(prefix ? `${prefix}.${path}` : path); //TODO Testen ob die 'select' Option auch richtig Einfluss auf Join Pfade hat, da das Join Object manmal im end Object 'obj.prefix.path' und manchmal 'obj.prefix.[0].path' sein kann
+        unset.push(prefix ? `${prefix}.${path}` : path);
       }
     });
     return unset;
   }
 
   /**
-   * Generates the aggregation pipeline based on joins and stages.
+   * Generates the aggregation pipeline based on joins, stages, match conditions, and unset fields.
    * @returns The aggregation pipeline array.
    */
   private _generatePipeline(): any[] {
     const pipeline: any[] = [];
-    // Joins
+    // Add join stages
     for (const rel of this._relations) {
       pipeline.push(this._calculateJoin(rel));
     }
-    // Stages
+    // Add custom stages
     pipeline.push(...this._stages);
-    // Match
-    if (Object.keys(this._match).length) {
-      pipeline.push({ $match: this._match });
+    // Add match conditions
+    if (Object.keys(this._matchConditions).length) {
+      pipeline.push({ $match: this._matchConditions });
     }
-    if (this._unset.length) {
-      pipeline.push({ $unset: this._unset });
+    // Add unset fields
+    if (this._unsetFields.length) {
+      pipeline.push({ $unset: this._unsetFields });
     }
     return pipeline;
   }
 
   /**
    * Executes the aggregation pipeline and returns the results.
+   * @param payload - Parameters for the query execution.
    * @returns The collection response wrapped in a Codec.
    */
   async exec<T = any>(payload: QueryParameters): Promise<Codec<FluentResponse>> {
     try {
-      let pipeline = this._generatePipeline();
+      const pipeline = this._generatePipeline();
 
-      const countPipeline = [...pipeline];
-      countPipeline.push({ $count: 'n' });
-
+      const countPipeline = [...pipeline, { $count: 'n' }];
       const queryPipeline = [...pipeline];
       if (!payload.isOne) {
         if (payload.skip) queryPipeline.push({ $skip: payload.skip });
@@ -222,43 +221,54 @@ export class QueryBuilder {
         this._config.model.aggregate<T>(queryPipeline).exec(),
       ]);
 
-      const maxRows = countRes && countRes[0] ? countRes[0].n : 0;
+      const totalCount = countRes && countRes[0] ? countRes[0].n : 0;
 
-      let documents;
-      if (payload.isOne) {
-        if (!res || res.length === 0) {
-          documents = [];
-        } else {
-          let doc = this._config.model.hydrate(res[0]);
-          if (this._config.eachFunc) {
-            doc = this._config.eachFunc(doc as T);
-          } else {
-            if (this._config.asyncEachFunc) {
-              doc = await this._config.asyncEachFunc(doc as T);
-            }
-          }
-          documents = doc;
-        }
-      } else {
-        let final = (res || []).map((doc: any) => this._config.model.hydrate(doc));
-        if (this._config.eachFunc) {
-          final = final.map(this._config.eachFunc);
-        } else {
-          if (this._config.asyncEachFunc) {
-            const asyncFinal: any[] = [];
-            for (const doc of final) {
-              const newDoc = await this._config.asyncEachFunc(doc);
-              asyncFinal.push(newDoc);
-            }
-            final = asyncFinal;
-          }
-        }
-        documents = final;
-      }
-      return new Codec<FluentResponse>({ data: documents, meta: { total: maxRows } }, 200);
+      const documents = payload.isOne
+        ? this._processSingleDocument<T>(res)
+        : this._processMultipleDocuments<T>(res);
+
+      return new Codec<FluentResponse>({ data: documents, meta: { total: totalCount } }, 200);
     } catch (err) {
       console.error('[ERROR - QueryBuilder]', err);
       return new Codec<FluentResponse>({ data: [], meta: { total: 0 } }, 500);
     }
+  }
+
+  /**
+   * Processes a single document from the aggregation result.
+   * @param res - The aggregation result array.
+   * @returns The processed document or null if none.
+   */
+  private async _processSingleDocument<T>(res: any[]): Promise<T | null> {
+    if (!res || res.length === 0) {
+      return null;
+    }
+    let doc = this._config.model.hydrate(res[0]);
+    if (this._config.eachFunc) {
+      doc = this._config.eachFunc(doc as T);
+    } else if (this._config.asyncEachFunc) {
+      doc = await this._config.asyncEachFunc(doc as T);
+    }
+    return doc;
+  }
+
+  /**
+   * Processes multiple documents from the aggregation result.
+   * @param res - The aggregation result array.
+   * @returns The array of processed documents.
+   */
+  private async _processMultipleDocuments<T>(res: any[]): Promise<T[]> {
+    let final = (res || []).map((doc: any) => this._config.model.hydrate(doc));
+    if (this._config.eachFunc) {
+      final = final.map(this._config.eachFunc);
+    } else if (this._config.asyncEachFunc) {
+      const asyncFinal: T[] = [];
+      for (const doc of final) {
+        const newDoc = await this._config.asyncEachFunc(doc);
+        asyncFinal.push(newDoc);
+      }
+      final = asyncFinal;
+    }
+    return final;
   }
 }

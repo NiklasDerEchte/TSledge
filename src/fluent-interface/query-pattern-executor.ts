@@ -2,129 +2,152 @@ import mongoose from 'mongoose';
 import {
   FluentResponse,
   FluentQuery,
-  FluentBody,
-  FluentParams,
   FilterFields,
   Codec,
   QueryRequestConfig,
   QueryPatternPath
 } from './types';
 import { QueryBuilder } from './query-builder';
-import { isNonEmptyObjectOrArray } from '../utils';
 
 export class QueryPatternExecutor {
   private _paths: QueryPatternPath[];
 
   /**
-   * Constructor for GetCollectionQueryBuilder.
+   * Constructor for QueryPatternExecutor.
+   * @param paths - Array of query pattern paths for filtering.
    */
   constructor(paths: QueryPatternPath[]) {
     this._paths = paths;
   }
 
   /**
-   * Static method to execute a collection query with given options.
-   * @param options
-   * @returns
+   * Parses and validates query parameters from the request.
+   * @param query - The query object from the request.
+   * @returns Parsed query parameters.
    */
-  // TODO
-  // public static async exec(options: GetCollectionQueryOptions): Promise<Codec<CollectionResponse>> {
-  //   let gcqb = new GetCollectionQueryBuilder(options);
-  //   return await gcqb.executeCollectionQuery();
-  // }
+  private _parseQueryParameters(query: FluentQuery): {
+    filter?: string;
+    limit?: string;
+    offset?: string;
+    id?: string;
+    excluded?: string[];
+    ids?: string[];
+  } {
+    const {
+      filter,
+      limit = '5',
+      offset = '0',
+      id,
+      excluded: excludedJSON,
+      ids: idsJSON,
+    } = query;
 
-  /**
-   * Adds a filter to exclude documents marked as end-of-life (EOL).
-   */
-  private addEolFilter() {
-    // TODO Hier eine dynamische alternative finden um abzuprüfen
-    // TODO Testen!! Wo ist der Filter nach dem CollectioName in der EolCollectionQueue?
-    // this._queryBuilder.addStage([
-    //   {
-    //     $lookup: {
-    //       from: EolCollectionQueue.collection.name,
-    //       localField: '_id',
-    //       foreignField: 'ofCollection',
-    //       as: 'eolFlags',
-    //     },
-    //   },
-    // ]);
-    // this._queryBuilder.match({
-    //   eolFlags: { $lte: [{ $size: '$eolFlags' }, 0] },
-    // });
+    let excluded: string[] | undefined;
+    if (excludedJSON) {
+      try {
+        excluded = JSON.parse(excludedJSON);
+        if (!Array.isArray(excluded)) throw new Error('Excluded must be an array');
+      } catch (error) {
+        console.warn('[QueryPatternExecutor] Invalid excluded parameter:', error);
+      }
+    }
+
+    let ids: string[] | undefined;
+    if (idsJSON) {
+      try {
+        ids = JSON.parse(idsJSON);
+        if (!Array.isArray(ids)) throw new Error('Ids must be an array');
+      } catch (error) {
+        console.warn('[QueryPatternExecutor] Invalid ids parameter:', error);
+      }
+    }
+
+    return { filter, limit, offset, id, excluded, ids };
   }
 
   /**
-   * Executes the collection query based on the provided options.
-   * @param options
-   * @returns
+   * Applies filters to the query builder based on parsed parameters and options.
+   * @param queryBuilder - The QueryBuilder instance.
+   * @param params - Parsed query parameters.
+   * @param options - Query request configuration.
    */
-  async exec<T = any>(options: QueryRequestConfig): Promise<Codec<FluentResponse>> {
-    let {
-      filter = undefined,
-      limit = '5',
-      offset = '0',
-      id = undefined,
-      excluded: excludedJSON = undefined,
-      ids: idsJSON = undefined,
-    } = (options.req.query as FluentQuery) || {};
-    let body = (options.req.body as FluentBody) || {};
-    const params = options.req.params as FluentParams;
+  private _applyFilters(
+    queryBuilder: QueryBuilder,
+    params: ReturnType<QueryPatternExecutor['_parseQueryParameters']>,
+    options: QueryRequestConfig
+  ): void {
+    const { id, ids, filter, excluded } = params;
 
-    let queryBuilder = new QueryBuilder(options);
-    let excluded = undefined;
-    try {
-      if (excludedJSON) excluded = JSON.parse(excludedJSON);
-    } catch (error) {}
-    let ids = undefined;
-    try {
-      if (idsJSON) ids = JSON.parse(idsJSON);
-    } catch (error) {}
-
-    this.addEolFilter();
-    // if (this._options.auth) { // TODO Hier eine Dynamische alternative finden
-    //   this._queryBuilder.match({
-    //     ofUserGroup: new mongoose.Types.ObjectId(this._options.auth.ofUserGroup),
-    //   });
-    // }
-
-    // console.log("Excluded"); // TODO Excluded funktion testen!! Die ids genauso da sie beiden arrays sind und über den body kommen
-    // console.log(excluded);
-    try {
-      if (id) {
-        queryBuilder.match({
-          _id: new mongoose.Types.ObjectId(id as string),
-        });
-      } else if (ids) {
-        const objectIds = ids.map((x: string) => new mongoose.Types.ObjectId(x));
-        queryBuilder.match({ _id: { $in: objectIds } });
-      } else {
-        let filterFields: FilterFields = [];
-        // TODO Hier muss eine neue Struktur implementiert werden, mit denen man Pfade und Logik dynamisch setzen kann
-        for (let path of this._paths) {
-          if (path.model.collection.name == options.model.collection.name) {
-            // TODO filterFields = collectionOption.collectionFilter;
-            break;
-          }
-        }
-        if (filter && filterFields.length > 0) {
-          const ors = filterFields.map((f: string) => ({
-            [f]: { $regex: filter, $options: 'i' },
-          }));
-          queryBuilder.match({ $or: ors });
-        }
-        if (excluded) {
-          const objectIds = excluded.map((x: string) => new mongoose.Types.ObjectId(x));
-          queryBuilder.match({ _id: { $nin: objectIds } });
-        }
+    if (id) {
+      queryBuilder.match({ _id: new mongoose.Types.ObjectId(id) });
+    } else if (ids && ids.length > 0) {
+      const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+      queryBuilder.match({ _id: { $in: objectIds } });
+    } else {
+      // Apply general filters
+      const filterFields = this._getFilterFieldsForModel(options.model);
+      if (filter && filterFields.length > 0) {
+        const ors = filterFields.map((field) => ({
+          [field]: { $regex: filter, $options: 'i' },
+        }));
+        queryBuilder.match({ $or: ors });
       }
-      return await queryBuilder.exec({
-        isOne: Boolean(id != undefined),
-        limit: limit == undefined || limit === 'full' ? undefined : parseInt(limit),
-        skip: offset == undefined ? undefined : parseInt(offset),
-      });
+      if (excluded && excluded.length > 0) {
+        const objectIds = excluded.map((id) => new mongoose.Types.ObjectId(id));
+        queryBuilder.match({ _id: { $nin: objectIds } });
+      }
+    }
+  }
+
+  /**
+   * Retrieves filter fields for the given model from the paths configuration.
+   * @param model - The Mongoose model.
+   * @returns Array of filter fields.
+   */
+  private _getFilterFieldsForModel(model: mongoose.Model<any>): FilterFields {
+    for (const path of this._paths) {
+      if (path.model.collection.name === model.collection.name) {
+        // Assuming filters are defined in the path; adjust as needed
+        return path.filters ? Object.keys(path.filters) : [];
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Builds execution parameters for the query builder.
+   * @param params - Parsed query parameters.
+   * @returns Execution parameters.
+   */
+  private _buildExecutionParameters(params: ReturnType<QueryPatternExecutor['_parseQueryParameters']>): {
+    isOne: boolean;
+    limit?: number;
+    skip?: number;
+  } {
+    const { id, limit, offset } = params;
+    return {
+      isOne: Boolean(id),
+      limit: limit === 'full' ? undefined : parseInt(limit || '5', 10),
+      skip: parseInt(offset || '0', 10),
+    };
+  }
+
+  /**
+   * Executes the fluent query based on the provided options.
+   * @param options - Configuration for the query request.
+   * @returns Promise resolving to a Codec containing the response.
+   */
+  public async exec<T = any>(options: QueryRequestConfig): Promise<Codec<FluentResponse>> {
+    try {
+      const queryParams = this._parseQueryParameters(options.req.query as FluentQuery);
+      const queryBuilder = new QueryBuilder(options);
+
+      this._applyFilters(queryBuilder, queryParams, options);
+
+      const execParams = this._buildExecutionParameters(queryParams);
+      return await queryBuilder.exec(execParams);
     } catch (err) {
-      console.error('[ERROR - GetCollectionQueryBuilder]', err);
+      console.error('[ERROR - QueryPatternExecutor]', err);
       return new Codec<FluentResponse>({ data: [], meta: { total: 0 } }, 500);
     }
   }

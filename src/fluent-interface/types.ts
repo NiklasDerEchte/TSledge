@@ -75,6 +75,9 @@ export interface QueryPatternPath<T = any> {
   filters?: Record<string, any>;
 }
 
+/**
+ * Configuration for executing a query request, including the request details, model to query, optional relations, and processing functions.
+ */
 export interface QueryRequestConfig<T = any> {
   req: Request<FluentParams, FluentResponse, FluentBody, FluentQuery>;
   model: mongoose.Model<T>;
@@ -86,6 +89,9 @@ export interface QueryRequestConfig<T = any> {
   select?: string[] | undefined;
 }
 
+/**
+ * 
+ */
 export interface QueryParameters {
   isOne?: boolean;
   limit?: number;
