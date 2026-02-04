@@ -101,11 +101,32 @@ export interface CollectionOption<T = any> {
 
 export interface QueryPatternPath<T = any> {
   // Required: Model
-  entity: mongoose.Model<T>;
+  model: mongoose.Model<T>;
   // Optional: Fields to select
   fields?: string[];
   // Optional: Query filters
   filters?: Record<string, any>;
 }
 
-export type QueryPatternConfig = QueryPatternPath[];
+export type QueryPatternExecOption = {
+  path: string; // Model name as string
+  req: Request<CollectionParams, CollectionResponse, CollectionBody, CollectionQuery>;
+  relations?: JoinRelation | JoinRelation[];
+  match?: Record<string, any>;
+  stages?: any[] | {};
+  eachFunc?: (doc: any) => any;
+  asyncEachFunc?: (doc: any) => Promise<any>;
+  select?: string[] | undefined;
+};
+
+//TODO NEXT
+export interface QueryBuilder {
+  select?(fields: string[] | string): QueryBuilder;
+  where?(conditions: Record<string, any>): QueryBuilder;
+  relation?(relation: JoinRelation[] | JoinRelation): QueryBuilder; // for No-SQL: JoinRelation
+  join?(join: string): QueryBuilder; //for SQL: String (e.g., "INNER JOIN table ON ...")
+  orderBy?(field: string, direction: 'asc' | 'desc'): QueryBuilder;
+  limit?(count: number): QueryBuilder;
+  offset?(count: number): QueryBuilder;
+  exec?(options?: QueryBuilderExecOptions): Promise<Codec<CollectionResponse>>;
+}

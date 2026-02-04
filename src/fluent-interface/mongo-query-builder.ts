@@ -5,9 +5,10 @@ import {
   QueryBuilderExecOptions,
   QueryBuilderOptions,
   JoinRelation,
+  QueryBuilder,
 } from './types';
 
-export class MongoQueryBuilder {
+export class MongoQueryBuilder implements QueryBuilder {
   private _options: QueryBuilderOptions;
   private _match: Record<string, any> = {};
   private _stages: any[] = [];
@@ -38,7 +39,11 @@ export class MongoQueryBuilder {
    * @param append
    * @returns
    */
-  match(match: Record<string, any> | Record<string, any>[], conjunction: string = 'and', append: boolean = true) {
+  match(
+    match: Record<string, any> | Record<string, any>[],
+    conjunction: string = 'and',
+    append: boolean = true
+  ) {
     if (!match || Object.keys(match).length === 0) return;
     if (!append) {
       this._match = match;
@@ -72,10 +77,11 @@ export class MongoQueryBuilder {
    * @param rels
    * @returns
    */
-  join(rels: JoinRelation | JoinRelation[] | null) {
-    if (!rels) return;
+  relation(rels: JoinRelation | JoinRelation[]): MongoQueryBuilder {
+    if (!rels) return this;
     const list = Array.isArray(rels) ? rels : [rels];
     list.forEach((rel) => this._relations.push(rel));
+    return this;
   }
 
   /**
@@ -102,7 +108,6 @@ export class MongoQueryBuilder {
    * @returns Array of JoinRelation objects.
    */
   private _generateSchemaJoins(schema: mongoose.Schema, prefix: string = '') {
-
     schema.eachPath((path: string, schematype: any) => {
       const fullPath = prefix ? `${prefix}.${path}` : path;
 
@@ -113,7 +118,9 @@ export class MongoQueryBuilder {
           let alias = schematype.options?.alias ?? refModel.collection.name;
           this.join(new JoinRelation(fullPath, refModel, alias));
         } catch (err) {
-          console.warn(`[QueryBuilder] Could not resolve ref model '${refModelName}' for path '${fullPath}'`);
+          console.warn(
+            `[QueryBuilder] Could not resolve ref model '${refModelName}' for path '${fullPath}'`
+          );
         }
       }
 
@@ -143,7 +150,9 @@ export class MongoQueryBuilder {
     this._unset = [];
     let unset = this._collectSelectFalse(options.model.schema, undefined, options.select);
     for (const relation of this._relations) {
-      unset = unset.concat(this._collectSelectFalse(relation.ref.schema, relation.alias, options.select));
+      unset = unset.concat(
+        this._collectSelectFalse(relation.ref.schema, relation.alias, options.select)
+      );
     }
     this._unset = Array.from(new Set(unset));
   }
@@ -154,7 +163,11 @@ export class MongoQueryBuilder {
    * @param prefix
    * @returns
    */
-  private _collectSelectFalse(schema: mongoose.Schema, prefix: string | undefined = undefined, select: string[] | undefined = undefined): string[] {
+  private _collectSelectFalse(
+    schema: mongoose.Schema,
+    prefix: string | undefined = undefined,
+    select: string[] | undefined = undefined
+  ): string[] {
     const unset: string[] = [];
     schema.eachPath((path: string, schematype: any) => {
       if (select && select.length > 0) {

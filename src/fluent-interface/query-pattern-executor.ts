@@ -7,20 +7,23 @@ import {
   GetCollectionQueryOptions,
   FilterFields,
   Codec,
-  CollectionOption
+  CollectionOption,
+  QueryPatternConfig,
+  QueryPatternExecOption,
+  QueryPatternPath
 } from './types';
 import { MongoQueryBuilder } from './mongo-query-builder';
 import { isNonEmptyObjectOrArray } from '../utils';
 
 export class QueryPatternExecutor {
   private _queryBuilder: MongoQueryBuilder;
-  private _options: GetCollectionQueryOptions;
+  private _paths: QueryPatternPath[];
 
   /**
    * Constructor for GetCollectionQueryBuilder.
    */
-  constructor(options: GetCollectionQueryOptions) {
-    this._options = options;
+  constructor(paths: QueryPatternPath[]) {
+    this._paths = paths;
     this._queryBuilder = new MongoQueryBuilder({
       model: options.model,
       eachFunc: options.eachFunc,
@@ -69,7 +72,7 @@ export class QueryPatternExecutor {
    * @param options
    * @returns
    */
-  async executeCollectionQuery<T = any>(collectionOptions: CollectionOption): Promise<Codec<CollectionResponse>> {
+  async exec<T = any>(options: QueryPatternExecOption): Promise<Codec<CollectionResponse>> {
     let {
       filter = undefined,
       limit = '5',
@@ -77,9 +80,9 @@ export class QueryPatternExecutor {
       id = undefined,
       excluded: excludedJSON = undefined,
       ids: idsJSON = undefined,
-    } = (this._options.req.query as CollectionQuery) || {};
-    let body = (this._options.req.body as CollectionBody) || {};
-    const params = this._options.req.params as CollectionParams;
+    } = (options.req.query as CollectionQuery) || {};
+    let body = (options.req.body as CollectionBody) || {};
+    const params = options.req.params as CollectionParams;
 
     let excluded = undefined;
     try {
@@ -109,11 +112,10 @@ export class QueryPatternExecutor {
         this._queryBuilder.match({ _id: { $in: objectIds } });
       } else {
         let filterFields: FilterFields = [];
-        const collectionName = this._options.model.collection.collectionName;
         // TODO Hier muss eine neue Struktur implementiert werden, mit denen man Pfade und Logik dynamisch setzen kann
-        for (let [collectionURL, collectionOption] of Object.entries(collectionOptions)) {
-          if (collectionOption.model.collection.name == collectionName) {
-            filterFields = collectionOption.collectionFilter;
+        for (let path of this._paths) {
+          if (path.model.collection.name == options.path) {
+            // TODO filterFields = collectionOption.collectionFilter;
             break;
           }
         }
