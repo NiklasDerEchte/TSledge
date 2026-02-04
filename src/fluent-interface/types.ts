@@ -13,22 +13,22 @@ export class JoinRelation<T = any> {
   }
 }
 
-export interface CollectionParams extends Record<string, string> {
+export interface FluentParams extends Record<string, string> {
   collection: string;
 }
-export interface CollectionBody {} // GET requests do not have body
+export interface FluentBody {} // GET requests do not have body
 
-export interface CollectionQuery {
+export interface FluentQuery {
+  id?: string;
+  ids?: string; // as JSON
   filter?: string;
   offset?: string;
   limit?: string;
   order?: string;
-  id?: string;
   excluded?: string; // as JSON
-  ids?: string; // as JSON
 }
 
-export interface CollectionResponse extends Record<string, any> {
+export interface FluentResponse extends Record<string, any> {
   data?: any[] | any;
   meta?: { total?: number };
   error?: string;
@@ -45,7 +45,7 @@ export class Codec<T = any> {
 
   sendToClient(res: any) {
     if (this.content == null) {
-      res.status(404).json({ Error: 'Ein Fehler ist aufgetreten! Schau auf dem Server nach.' });
+      res.status(404).json({});
     }
     res.status(this.returnCode).json(this.content);
   }
@@ -76,7 +76,7 @@ export interface QueryPatternPath<T = any> {
 }
 
 export interface QueryRequestConfig<T = any> {
-  req: Request<CollectionParams, CollectionResponse, CollectionBody, CollectionQuery>;
+  req: Request<FluentParams, FluentResponse, FluentBody, FluentQuery>;
   model: mongoose.Model<T>;
   relations?: JoinRelation | JoinRelation[];
   match?: Record<string, any>;
@@ -86,7 +86,7 @@ export interface QueryRequestConfig<T = any> {
   select?: string[] | undefined;
 }
 
-export interface QueryBuilderPayload {
+export interface QueryParameters {
   isOne?: boolean;
   limit?: number;
   skip?: number;

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Codec, CollectionResponse, JoinRelation, QueryBuilderPayload, QueryRequestConfig } from './types';
+import { Codec, FluentResponse, JoinRelation, QueryParameters, QueryRequestConfig } from './types';
 
 export class QueryBuilder {
   private _config: QueryRequestConfig;
@@ -14,7 +14,7 @@ export class QueryBuilder {
     if (this._config.match && Object.keys(this._config.match).length) {
       this.match(this._config.match);
     }
-    this.addStage(this._config.stages);
+    this.stage(this._config.stages);
   }
 
   /**
@@ -56,7 +56,7 @@ export class QueryBuilder {
    * @param stages
    * @returns
    */
-  addStage(stages: any[] | {} | any) {
+  stage(stages: any[] | {} | any) {
     if (!stages) return;
     if (Array.isArray(stages)) {
       this._stages.push(...globalThis.structuredClone(stages));
@@ -204,7 +204,7 @@ export class QueryBuilder {
    * Executes the aggregation pipeline and returns the results.
    * @returns The collection response wrapped in a Codec.
    */
-  async exec<T = any>(payload: QueryBuilderPayload): Promise<Codec<CollectionResponse>> {
+  async exec<T = any>(payload: QueryParameters): Promise<Codec<FluentResponse>> {
     try {
       let pipeline = this._generatePipeline();
 
@@ -255,10 +255,10 @@ export class QueryBuilder {
         }
         documents = final;
       }
-      return new Codec<CollectionResponse>({ data: documents, meta: { total: maxRows } }, 200);
+      return new Codec<FluentResponse>({ data: documents, meta: { total: maxRows } }, 200);
     } catch (err) {
       console.error('[ERROR - QueryBuilder]', err);
-      return new Codec<CollectionResponse>({ data: [], meta: { total: 0 } }, 500);
+      return new Codec<FluentResponse>({ data: [], meta: { total: 0 } }, 500);
     }
   }
 }

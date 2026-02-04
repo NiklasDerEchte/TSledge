@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 import {
-  CollectionResponse,
-  CollectionQuery,
-  CollectionBody,
-  CollectionParams,
+  FluentResponse,
+  FluentQuery,
+  FluentBody,
+  FluentParams,
   FilterFields,
   Codec,
   QueryRequestConfig,
@@ -59,7 +59,7 @@ export class QueryPatternExecutor {
    * @param options
    * @returns
    */
-  async exec<T = any>(options: QueryRequestConfig): Promise<Codec<CollectionResponse>> {
+  async exec<T = any>(options: QueryRequestConfig): Promise<Codec<FluentResponse>> {
     let {
       filter = undefined,
       limit = '5',
@@ -67,9 +67,9 @@ export class QueryPatternExecutor {
       id = undefined,
       excluded: excludedJSON = undefined,
       ids: idsJSON = undefined,
-    } = (options.req.query as CollectionQuery) || {};
-    let body = (options.req.body as CollectionBody) || {};
-    const params = options.req.params as CollectionParams;
+    } = (options.req.query as FluentQuery) || {};
+    let body = (options.req.body as FluentBody) || {};
+    const params = options.req.params as FluentParams;
 
     let queryBuilder = new QueryBuilder(options);
     let excluded = undefined;
@@ -125,7 +125,7 @@ export class QueryPatternExecutor {
       });
     } catch (err) {
       console.error('[ERROR - GetCollectionQueryBuilder]', err);
-      return new Codec<CollectionResponse>({ data: [], meta: { total: 0 } }, 500);
+      return new Codec<FluentResponse>({ data: [], meta: { total: 0 } }, 500);
     }
   }
 }
