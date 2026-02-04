@@ -13,33 +13,6 @@ export class JoinRelation<T = any> {
   }
 }
 
-export interface GetCollectionQueryOptions<T = any> {
-  model: mongoose.Model<T>;
-  req: Request<CollectionParams, CollectionResponse, CollectionBody, CollectionQuery>;
-  relations?: JoinRelation | JoinRelation[];
-  match?: Record<string, any>;
-  stages?: any[] | {};
-  eachFunc?: (doc: any) => any;
-  asyncEachFunc?: (doc: any) => Promise<any>;
-  select?: string[] | undefined;
-}
-
-export interface QueryBuilderOptions<T = any> {
-  model: mongoose.Model<T>;
-  relations?: JoinRelation | JoinRelation[];
-  match?: Record<string, any>;
-  stages?: any[] | {};
-  eachFunc?: (doc: any) => any;
-  asyncEachFunc?: (doc: any) => Promise<any>;
-  select?: string[] | undefined;
-}
-
-export interface QueryBuilderExecOptions {
-  isOne?: boolean;
-  limit?: number;
-  skip?: number;
-}
-
 export interface CollectionParams extends Record<string, string> {
   collection: string;
 }
@@ -92,12 +65,6 @@ export class Codec<T = any> {
 }
 
 export type FilterFields = string[];
-export interface CollectionOption<T = any> {
-  [route: string]: {
-    model: mongoose.Model<T>;
-    collectionFilter: FilterFields;
-  };
-}
 
 export interface QueryPatternPath<T = any> {
   // Required: Model
@@ -108,25 +75,19 @@ export interface QueryPatternPath<T = any> {
   filters?: Record<string, any>;
 }
 
-export type QueryPatternExecOption = {
-  path: string; // Model name as string
+export interface QueryRequestConfig<T = any> {
   req: Request<CollectionParams, CollectionResponse, CollectionBody, CollectionQuery>;
+  model: mongoose.Model<T>;
   relations?: JoinRelation | JoinRelation[];
   match?: Record<string, any>;
   stages?: any[] | {};
   eachFunc?: (doc: any) => any;
   asyncEachFunc?: (doc: any) => Promise<any>;
   select?: string[] | undefined;
-};
+}
 
-//TODO NEXT
-export interface QueryBuilder {
-  select?(fields: string[] | string): QueryBuilder;
-  where?(conditions: Record<string, any>): QueryBuilder;
-  relation?(relation: JoinRelation[] | JoinRelation): QueryBuilder; // for No-SQL: JoinRelation
-  join?(join: string): QueryBuilder; //for SQL: String (e.g., "INNER JOIN table ON ...")
-  orderBy?(field: string, direction: 'asc' | 'desc'): QueryBuilder;
-  limit?(count: number): QueryBuilder;
-  offset?(count: number): QueryBuilder;
-  exec?(options?: QueryBuilderExecOptions): Promise<Codec<CollectionResponse>>;
+export interface QueryBuilderPayload {
+  isOne?: boolean;
+  limit?: number;
+  skip?: number;
 }

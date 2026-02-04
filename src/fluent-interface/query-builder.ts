@@ -1,35 +1,28 @@
 import mongoose from 'mongoose';
-import {
-  Codec,
-  CollectionResponse,
-  QueryBuilderExecOptions,
-  QueryBuilderOptions,
-  JoinRelation,
-  QueryBuilder,
-} from './types';
+import { Codec, CollectionResponse, JoinRelation, QueryBuilderPayload, QueryRequestConfig } from './types';
 
-export class MongoQueryBuilder implements QueryBuilder {
-  private _options: QueryBuilderOptions;
+export class QueryBuilder {
+  private _config: QueryRequestConfig;
   private _match: Record<string, any> = {};
   private _stages: any[] = [];
   private _relations: JoinRelation[] = [];
   private _unset: string[] = [];
 
-  constructor(options: QueryBuilderOptions) {
-    this._options = options;
+  constructor(config: QueryRequestConfig) {
+    this._config = config;
     this._applyPathOptions();
-    if (this._options.match && Object.keys(this._options.match).length) {
-      this.match(this._options.match);
+    if (this._config.match && Object.keys(this._config.match).length) {
+      this.match(this._config.match);
     }
-    this.addStage(this._options.stages);
+    this.addStage(this._config.stages);
   }
 
   /**
    * Applies schema-based options such as joins and unset fields.
    */
   private _applyPathOptions() {
-    this._generateSchemaJoins(this._options.model.schema);
-    this._generateSchemaUnsetList(this._options);
+    this._generateSchemaJoins(this._config.model.schema);
+    this._generateSchemaUnsetList(this._config);
   }
 
   /**
@@ -77,11 +70,10 @@ export class MongoQueryBuilder implements QueryBuilder {
    * @param rels
    * @returns
    */
-  relation(rels: JoinRelation | JoinRelation[]): MongoQueryBuilder {
-    if (!rels) return this;
+  join(rels: JoinRelation | JoinRelation[] | null) {
+    if (!rels) return;
     const list = Array.isArray(rels) ? rels : [rels];
     list.forEach((rel) => this._relations.push(rel));
-    return this;
   }
 
   /**
@@ -124,17 +116,21 @@ export class MongoQueryBuilder implements QueryBuilder {
         }
       }
 
-      //TODO Das hier iwie implementieren, falls Arrays mit refs gebraucht werden
-      // if (schematype instanceof mongoose.Schema.Types.Array && schematype.caster?.options?.ref) {
-      //   const refModelName = schematype.caster.options.ref;
-      //   try {
-      //     const refModel = mongoose.model(refModelName);
-      //     let alias = schematype.caster.options?.alias ?? refModel.collection.name;
-      //     this.join(new JoinRelation(fullPath, refModel, alias));
-      //   } catch (err) {
-      //     console.warn(`[QueryBuilder] Could not resolve array ref model '${refModelName}' for path '${fullPath}'`);
-      //   }
-      // }
+      if (
+        schematype instanceof mongoose.Schema.Types.Array &&
+        (schematype as any).caster?.options?.ref
+      ) {
+        const refModelName = (schematype as any).caster.options.ref;
+        try {
+          const refModel = mongoose.model(refModelName);
+          let alias = (schematype as any).caster.options?.alias ?? refModel.collection.name;
+          this.join(new JoinRelation(fullPath, refModel, alias));
+        } catch (err) {
+          console.warn(
+            `[QueryBuilder] Could not resolve array ref model '${refModelName}' for path '${fullPath}'`
+          );
+        }
+      }
 
       // if (schematype instanceof mongoose.Schema.Types.Subdocument) { //TODO Testen ob Subdocuments auch so erkannt werden können
       //   joins.push(...this._generateSchemaJoins(model.schema, fullPath));
@@ -144,14 +140,14 @@ export class MongoQueryBuilder implements QueryBuilder {
 
   /**
    * Generates the list of fields to unset based on schema select options.
-   * @param options
+   * @param config
    */
-  private _generateSchemaUnsetList(options: QueryBuilderOptions) {
+  private _generateSchemaUnsetList(config: QueryRequestConfig) {
     this._unset = [];
-    let unset = this._collectSelectFalse(options.model.schema, undefined, options.select);
+    let unset = this._collectSelectFalse(config.model.schema, undefined, config.select);
     for (const relation of this._relations) {
       unset = unset.concat(
-        this._collectSelectFalse(relation.ref.schema, relation.alias, options.select)
+        this._collectSelectFalse(relation.ref.schema, relation.alias, config.select)
       );
     }
     this._unset = Array.from(new Set(unset));
@@ -208,7 +204,7 @@ export class MongoQueryBuilder implements QueryBuilder {
    * Executes the aggregation pipeline and returns the results.
    * @returns The collection response wrapped in a Codec.
    */
-  async exec<T = any>(execOptions: QueryBuilderExecOptions): Promise<Codec<CollectionResponse>> {
+  async exec<T = any>(payload: QueryBuilderPayload): Promise<Codec<CollectionResponse>> {
     try {
       let pipeline = this._generatePipeline();
 
@@ -216,42 +212,42 @@ export class MongoQueryBuilder implements QueryBuilder {
       countPipeline.push({ $count: 'n' });
 
       const queryPipeline = [...pipeline];
-      if (!execOptions.isOne) {
-        if (execOptions.skip) queryPipeline.push({ $skip: execOptions.skip });
-        if (execOptions.limit) queryPipeline.push({ $limit: execOptions.limit });
+      if (!payload.isOne) {
+        if (payload.skip) queryPipeline.push({ $skip: payload.skip });
+        if (payload.limit) queryPipeline.push({ $limit: payload.limit });
       }
 
       const [countRes, res] = await Promise.all([
-        this._options.model.aggregate(countPipeline).exec(),
-        this._options.model.aggregate<T>(queryPipeline).exec(),
+        this._config.model.aggregate(countPipeline).exec(),
+        this._config.model.aggregate<T>(queryPipeline).exec(),
       ]);
 
       const maxRows = countRes && countRes[0] ? countRes[0].n : 0;
 
       let documents;
-      if (execOptions.isOne) {
+      if (payload.isOne) {
         if (!res || res.length === 0) {
           documents = [];
         } else {
-          let doc = this._options.model.hydrate(res[0]);
-          if (this._options.eachFunc) {
-            doc = this._options.eachFunc(doc as T);
+          let doc = this._config.model.hydrate(res[0]);
+          if (this._config.eachFunc) {
+            doc = this._config.eachFunc(doc as T);
           } else {
-            if (this._options.asyncEachFunc) {
-              doc = await this._options.asyncEachFunc(doc as T);
+            if (this._config.asyncEachFunc) {
+              doc = await this._config.asyncEachFunc(doc as T);
             }
           }
           documents = doc;
         }
       } else {
-        let final = (res || []).map((doc: any) => this._options.model.hydrate(doc));
-        if (this._options.eachFunc) {
-          final = final.map(this._options.eachFunc);
+        let final = (res || []).map((doc: any) => this._config.model.hydrate(doc));
+        if (this._config.eachFunc) {
+          final = final.map(this._config.eachFunc);
         } else {
-          if (this._options.asyncEachFunc) {
+          if (this._config.asyncEachFunc) {
             const asyncFinal: any[] = [];
             for (const doc of final) {
-              const newDoc = await this._options.asyncEachFunc(doc);
+              const newDoc = await this._config.asyncEachFunc(doc);
               asyncFinal.push(newDoc);
             }
             final = asyncFinal;

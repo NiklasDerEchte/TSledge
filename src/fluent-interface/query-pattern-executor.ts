@@ -4,19 +4,15 @@ import {
   CollectionQuery,
   CollectionBody,
   CollectionParams,
-  GetCollectionQueryOptions,
   FilterFields,
   Codec,
-  CollectionOption,
-  QueryPatternConfig,
-  QueryPatternExecOption,
+  QueryRequestConfig,
   QueryPatternPath
 } from './types';
-import { MongoQueryBuilder } from './mongo-query-builder';
+import { QueryBuilder } from './query-builder';
 import { isNonEmptyObjectOrArray } from '../utils';
 
 export class QueryPatternExecutor {
-  private _queryBuilder: MongoQueryBuilder;
   private _paths: QueryPatternPath[];
 
   /**
@@ -24,15 +20,6 @@ export class QueryPatternExecutor {
    */
   constructor(paths: QueryPatternPath[]) {
     this._paths = paths;
-    this._queryBuilder = new MongoQueryBuilder({
-      model: options.model,
-      eachFunc: options.eachFunc,
-      asyncEachFunc: options.asyncEachFunc,
-      select: options.select,
-      stages: isNonEmptyObjectOrArray(options.stages) ? options.stages : [],
-      match: isNonEmptyObjectOrArray(options.match) ? options.match : {},
-      relations: options.relations,
-    });
   }
 
   /**
@@ -72,7 +59,7 @@ export class QueryPatternExecutor {
    * @param options
    * @returns
    */
-  async exec<T = any>(options: QueryPatternExecOption): Promise<Codec<CollectionResponse>> {
+  async exec<T = any>(options: QueryRequestConfig): Promise<Codec<CollectionResponse>> {
     let {
       filter = undefined,
       limit = '5',
@@ -84,6 +71,7 @@ export class QueryPatternExecutor {
     let body = (options.req.body as CollectionBody) || {};
     const params = options.req.params as CollectionParams;
 
+    let queryBuilder = new QueryBuilder(options);
     let excluded = undefined;
     try {
       if (excludedJSON) excluded = JSON.parse(excludedJSON);
@@ -104,17 +92,17 @@ export class QueryPatternExecutor {
     // console.log(excluded);
     try {
       if (id) {
-        this._queryBuilder.match({
+        queryBuilder.match({
           _id: new mongoose.Types.ObjectId(id as string),
         });
       } else if (ids) {
         const objectIds = ids.map((x: string) => new mongoose.Types.ObjectId(x));
-        this._queryBuilder.match({ _id: { $in: objectIds } });
+        queryBuilder.match({ _id: { $in: objectIds } });
       } else {
         let filterFields: FilterFields = [];
         // TODO Hier muss eine neue Struktur implementiert werden, mit denen man Pfade und Logik dynamisch setzen kann
         for (let path of this._paths) {
-          if (path.model.collection.name == options.path) {
+          if (path.model.collection.name == options.model.collection.name) {
             // TODO filterFields = collectionOption.collectionFilter;
             break;
           }
@@ -123,14 +111,14 @@ export class QueryPatternExecutor {
           const ors = filterFields.map((f: string) => ({
             [f]: { $regex: filter, $options: 'i' },
           }));
-          this._queryBuilder.match({ $or: ors });
+          queryBuilder.match({ $or: ors });
         }
         if (excluded) {
           const objectIds = excluded.map((x: string) => new mongoose.Types.ObjectId(x));
-          this._queryBuilder.match({ _id: { $nin: objectIds } });
+          queryBuilder.match({ _id: { $nin: objectIds } });
         }
       }
-      return await this._queryBuilder.exec({
+      return await queryBuilder.exec({
         isOne: Boolean(id != undefined),
         limit: limit == undefined || limit === 'full' ? undefined : parseInt(limit),
         skip: offset == undefined ? undefined : parseInt(offset),
