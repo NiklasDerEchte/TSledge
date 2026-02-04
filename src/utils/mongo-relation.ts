@@ -1,26 +1,19 @@
-import mongoose from "mongoose";
-
-export class JoinRelation<T = any> {
-  ref: mongoose.Model<T>;
-  localField: string;
-  alias: string;
-
-  constructor(localField: string, ref: mongoose.Model<T>, alias: string | undefined = undefined) {
-    this.ref = ref;
-    this.localField = localField;
-    this.alias = alias ? alias : ref.collection.name;
-  }
-}
+import mongoose from 'mongoose';
 
 /**
  * Inserts new relations into the collection, avoiding duplicates based on the compareFunc.
- * @param model 
- * @param relations 
- * @param compareFunc 
- * @param validateFunc 
- * @returns 
+ * @param model
+ * @param relations
+ * @param compareFunc
+ * @param validateFunc
+ * @returns
  */
-export function insertCollectionRelations<T = any>(model: mongoose.Model<T>, relations: any, compareFunc: any, validateFunc: any = undefined) {
+export function insertCollectionRelations<T = any>(
+  model: mongoose.Model<T>,
+  relations: any,
+  compareFunc: any,
+  validateFunc: any = undefined
+) {
   if (relations == undefined) {
     return;
   }
@@ -69,7 +62,11 @@ export async function mergeCollectionRelations<T>(
       // The validateFunc should handle the structure extraction and validation
       const validatedRelation = validateFunc(relation);
 
-      if (!relationStack.some((duplicateRelationCheck) => compareFunc(validatedRelation, duplicateRelationCheck))) {
+      if (
+        !relationStack.some((duplicateRelationCheck) =>
+          compareFunc(validatedRelation, duplicateRelationCheck)
+        )
+      ) {
         relationStack.push(validatedRelation);
       }
     }
@@ -108,18 +105,4 @@ export async function mergeCollectionRelations<T>(
       await model.deleteMany({ _id: { $in: idsToRemove } });
     }
   }
-}
-
-/**
- * Validates that the input is a non-empty object or array.
- * @param value 
- * @returns boolean
- */
-export function isNonEmptyObjectOrArray(value: any): boolean {
-  return value != null &&
-    value != undefined &&
-    (
-      (Array.isArray(value) && value.length > 0) ||
-      (typeof value === 'object' && !Array.isArray(value) && Object.keys(value as object).length > 0)
-    );
 }

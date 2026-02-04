@@ -9,11 +9,11 @@ import {
   Codec,
   CollectionOption
 } from './types';
-import { QueryBuilder } from './query-builder';
-import { isNonEmptyObjectOrArray } from './utils';
+import { MongoQueryBuilder } from './mongo-query-builder';
+import { isNonEmptyObjectOrArray } from '../utils';
 
-export class GetCollectionQueryBuilder {
-  private _queryBuilder: QueryBuilder;
+export class QueryPatternExecutor {
+  private _queryBuilder: MongoQueryBuilder;
   private _options: GetCollectionQueryOptions;
 
   /**
@@ -21,7 +21,7 @@ export class GetCollectionQueryBuilder {
    */
   constructor(options: GetCollectionQueryOptions) {
     this._options = options;
-    this._queryBuilder = new QueryBuilder({
+    this._queryBuilder = new MongoQueryBuilder({
       model: options.model,
       eachFunc: options.eachFunc,
       asyncEachFunc: options.asyncEachFunc,

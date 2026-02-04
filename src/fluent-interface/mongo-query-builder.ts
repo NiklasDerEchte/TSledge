@@ -1,8 +1,13 @@
 import mongoose from 'mongoose';
-import { Codec, CollectionResponse, QueryBuilderExecOptions, QueryBuilderOptions } from './types';
-import { JoinRelation } from './utils';
+import {
+  Codec,
+  CollectionResponse,
+  QueryBuilderExecOptions,
+  QueryBuilderOptions,
+  JoinRelation,
+} from './types';
 
-export class QueryBuilder {
+export class MongoQueryBuilder {
   private _options: QueryBuilderOptions;
   private _match: Record<string, any> = {};
   private _stages: any[] = [];
