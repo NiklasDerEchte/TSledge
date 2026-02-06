@@ -79,8 +79,7 @@ export class FluentPatternExecutor {
    */
   private _applyFilters(
     queryBuilder: QueryBuilder,
-    params: ReturnType<FluentPatternExecutor['_parseFluentRequestQuery']>,
-    model: mongoose.Model<any>
+    params: ReturnType<FluentPatternExecutor['_parseFluentRequestQuery']>
   ): void {
     const { id, ids, filter, excluded } = params;
 
@@ -91,7 +90,7 @@ export class FluentPatternExecutor {
       queryBuilder.match({ _id: { $in: objectIds } });
     } else {
       // Apply general filters
-      const filterFields = this._getFilterFieldsForModel(model);
+      const filterFields = this._getFilterFieldsForModel(queryBuilder.getConfig().model);
       if (filter && filterFields.length > 0) {
         const ors = filterFields.map((field) => ({
           [field]: { $regex: filter, $options: 'i' },
@@ -153,7 +152,7 @@ export class FluentPatternExecutor {
     try {
       const queryParams = this._parseFluentRequestQuery(req.query as FluentRequestQuery);
 
-      this._applyFilters(queryBuilder, queryParams, queryBuilder.getConfig().model);
+      this._applyFilters(queryBuilder, queryParams);
       const execConfig = this._buildExecutionConfig(queryParams);
       return await queryBuilder.exec(execConfig);
     } catch (err) {
