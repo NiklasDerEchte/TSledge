@@ -2,9 +2,9 @@
   "author": "Niklas Wockenfuß",
   "homepage": "https://niklaswockenfuss.de/",
   "name": "tsledge",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "license": "MIT",
-  "description": "",
+  "description": "My playground and some helpful tools for web development ",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -12,6 +12,9 @@
     "README.md",
     "LICENSE"
   ],
+  "engines": {
+    "node": ">=23.0.0"
+  },
   "scripts": {
     "dev": "ts-node-dev --respawn tests/main.ts",
     "repl": "ts-node --project tsconfig.json ./scripts/repl.ts",

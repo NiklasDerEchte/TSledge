@@ -13,6 +13,7 @@ tsconfig.json
 *.log
 docs/
 npm-debug.log*
+.env
 
 # Tests
 tests/
