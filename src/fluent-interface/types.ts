@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 
 export class JoinRelation<T = any> {
   ref: mongoose.Model<T>;
@@ -13,12 +13,12 @@ export class JoinRelation<T = any> {
   }
 }
 
-export interface FluentParams extends Record<string, string> {
+export interface FluentRequestParams extends Record<string, string> {
   collection: string;
 }
-export interface FluentBody {} // GET requests do not have body
+export interface FluentRequestBody {} // GET requests do not have body
 
-export interface FluentQuery {
+export interface FluentRequestQuery {
   id?: string;
   ids?: string; // as JSON
   filter?: string;
@@ -28,7 +28,7 @@ export interface FluentQuery {
   excluded?: string; // as JSON
 }
 
-export interface FluentResponse extends Record<string, any> {
+export interface FluentResponseBody extends Record<string, any> {
   data?: any[] | any;
   meta?: { total?: number };
   error?: string;
@@ -66,7 +66,7 @@ export class Codec<T = any> {
 
 export type FilterFields = string[];
 
-export interface QueryPatternPath<T = any> {
+export interface FluentAPIPath<T = any> {
   // Required: Model
   model: mongoose.Model<T>;
   // Optional: Fields to select
@@ -75,11 +75,20 @@ export interface QueryPatternPath<T = any> {
   filters?: Record<string, any>;
 }
 
+export type FluentExpressRequest = Request<
+  FluentRequestParams,
+  FluentResponseBody,
+  FluentRequestBody,
+  FluentRequestQuery
+>;
+
+export type FluentExpressResponse = Response<FluentResponseBody>;
+
 /**
  * Configuration for executing a query request, including the request details, model to query, optional relations, and processing functions.
  */
-export interface QueryRequestConfig<T = any> {
-  req: Request<FluentParams, FluentResponse, FluentBody, FluentQuery>;
+export interface FluentExecuteConfig<T = any> {
+  req: FluentExpressRequest;
   model: mongoose.Model<T>;
   relations?: JoinRelation | JoinRelation[];
   match?: Record<string, any>;
@@ -90,9 +99,9 @@ export interface QueryRequestConfig<T = any> {
 }
 
 /**
- * 
+ * Configuration for a query execution
  */
-export interface QueryParameters {
+export interface QueryBuilderExecuteConfig {
   isOne?: boolean;
   limit?: number;
   skip?: number;

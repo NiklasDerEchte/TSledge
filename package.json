@@ -13,7 +13,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "dev": "ts-node-dev --respawn tests/index.ts",
+    "dev": "ts-node-dev --respawn tests/main.ts",
     "repl": "ts-node --project tsconfig.json ./scripts/repl.ts",
     "build": "tsc"
   },

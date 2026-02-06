@@ -1,20 +1,28 @@
 import mongoose from 'mongoose';
-import { Codec, FluentResponse, JoinRelation, QueryParameters, QueryRequestConfig } from './types';
+import { Codec, FluentResponseBody, JoinRelation, QueryBuilderExecuteConfig, FluentExecuteConfig } from './types';
 
 export class QueryBuilder {
-  private _config: QueryRequestConfig;
+  private _config: FluentExecuteConfig;
   private _matchConditions: Record<string, any> = {};
   private _stages: any[] = [];
   private _relations: JoinRelation[] = [];
   private _unsetFields: string[] = [];
 
-  constructor(config: QueryRequestConfig) {
+  constructor(config: FluentExecuteConfig) {
     this._config = config;
     this._applyPathOptions();
     if (this._config.match && Object.keys(this._config.match).length) {
       this.match(this._config.match);
     }
     this.stage(this._config.stages);
+  }
+
+  /**
+   * Generates the aggregation pipeline based on the current configuration of the QueryBuilder.
+   * @returns 
+   */
+  public getAggregationPipeline(): any[] {
+    return this._generatePipeline();
   }
 
   /**
@@ -36,7 +44,8 @@ export class QueryBuilder {
     conjunction: string = 'and',
     append: boolean = true
   ) {
-    if (!match || (Array.isArray(match) ? match.length === 0 : Object.keys(match).length === 0)) return;
+    if (!match || (Array.isArray(match) ? match.length === 0 : Object.keys(match).length === 0))
+      return;
     if (!append) {
       this._matchConditions = Array.isArray(match) ? { $and: match } : match;
       return;
@@ -141,7 +150,7 @@ export class QueryBuilder {
    * Generates the list of fields to unset based on schema select options.
    * @param config - The query request configuration.
    */
-  private _generateSchemaUnsetList(config: QueryRequestConfig) {
+  private _generateSchemaUnsetList(config: FluentExecuteConfig) {
     this._unsetFields = [];
     let unset = this._collectSelectFalse(config.model.schema, undefined, config.select);
     for (const relation of this._relations) {
@@ -167,7 +176,12 @@ export class QueryBuilder {
     const unset: string[] = [];
     schema.eachPath((path: string, schematype: any) => {
       // If select is specified, only consider fields not in select or with select: false
-      if (select && select.length > 0 && !select.includes(path) && schematype?.options?.select !== false) {
+      if (
+        select &&
+        select.length > 0 &&
+        !select.includes(path) &&
+        schematype?.options?.select !== false
+      ) {
         return;
       }
       if (schematype?.options?.select === false) {
@@ -202,18 +216,18 @@ export class QueryBuilder {
 
   /**
    * Executes the aggregation pipeline and returns the results.
-   * @param payload - Parameters for the query execution.
+   * @param config - Parameters for the query execution.
    * @returns The collection response wrapped in a Codec.
    */
-  async exec<T = any>(payload: QueryParameters): Promise<Codec<FluentResponse>> {
+  async exec<T = any>(config: QueryBuilderExecuteConfig): Promise<Codec<FluentResponseBody>> {
     try {
       const pipeline = this._generatePipeline();
 
       const countPipeline = [...pipeline, { $count: 'n' }];
       const queryPipeline = [...pipeline];
-      if (!payload.isOne) {
-        if (payload.skip) queryPipeline.push({ $skip: payload.skip });
-        if (payload.limit) queryPipeline.push({ $limit: payload.limit });
+      if (!config.isOne) {
+        if (config.skip) queryPipeline.push({ $skip: config.skip });
+        if (config.limit) queryPipeline.push({ $limit: config.limit });
       }
 
       const [countRes, res] = await Promise.all([
@@ -222,15 +236,14 @@ export class QueryBuilder {
       ]);
 
       const totalCount = countRes && countRes[0] ? countRes[0].n : 0;
+      const documents = config.isOne
+        ? await this._processSingleDocument<T>(res)
+        : await this._processMultipleDocuments<T>(res);
 
-      const documents = payload.isOne
-        ? this._processSingleDocument<T>(res)
-        : this._processMultipleDocuments<T>(res);
-
-      return new Codec<FluentResponse>({ data: documents, meta: { total: totalCount } }, 200);
+      return new Codec<FluentResponseBody>({ data: documents, meta: { total: totalCount } }, 200);
     } catch (err) {
       console.error('[ERROR - QueryBuilder]', err);
-      return new Codec<FluentResponse>({ data: [], meta: { total: 0 } }, 500);
+      return new Codec<FluentResponseBody>({ data: [], meta: { total: 0 } }, 500);
     }
   }
 

@@ -1,23 +1,37 @@
 import mongoose from 'mongoose';
 import {
-  FluentResponse,
-  FluentQuery,
+  FluentResponseBody,
+  FluentRequestQuery,
   FilterFields,
   Codec,
-  QueryRequestConfig,
-  QueryPatternPath
+  FluentExecuteConfig,
+  FluentAPIPath,
 } from './types';
 import { QueryBuilder } from './query-builder';
 
-export class QueryPatternExecutor {
-  private _paths: QueryPatternPath[];
+export class FluentPatternExecutor {
+  private static _singleton: FluentPatternExecutor;
+  private _paths: FluentAPIPath[];
 
   /**
    * Constructor for QueryPatternExecutor.
    * @param paths - Array of query pattern paths for filtering.
    */
-  constructor(paths: QueryPatternPath[]) {
+  constructor(paths: FluentAPIPath[] = []) {
+    if (FluentPatternExecutor._singleton) {
+      throw new Error(
+        'FluentPatternExecutor is a singleton class. Use FluentPatternExecutor.getInstance() to access the instance.'
+      );
+    }
     this._paths = paths;
+    FluentPatternExecutor._singleton = this;
+  }
+
+  public static getInstance(): FluentPatternExecutor {
+    if (FluentPatternExecutor._singleton == undefined) {
+      throw new Error('FluentPatternExecutor instance has not been created yet. Please create an instance before calling getInstance().');
+    } 
+    return FluentPatternExecutor._singleton;
   }
 
   /**
@@ -25,7 +39,7 @@ export class QueryPatternExecutor {
    * @param query - The query object from the request.
    * @returns Parsed query parameters.
    */
-  private _parseQueryParameters(query: FluentQuery): {
+  private _parseFluentRequestQuery(query: FluentRequestQuery): {
     filter?: string;
     limit?: string;
     offset?: string;
@@ -33,14 +47,7 @@ export class QueryPatternExecutor {
     excluded?: string[];
     ids?: string[];
   } {
-    const {
-      filter,
-      limit = '5',
-      offset = '0',
-      id,
-      excluded: excludedJSON,
-      ids: idsJSON,
-    } = query;
+    const { filter, limit = '5', offset = '0', id, excluded: excludedJSON, ids: idsJSON } = query;
 
     let excluded: string[] | undefined;
     if (excludedJSON) {
@@ -69,12 +76,12 @@ export class QueryPatternExecutor {
    * Applies filters to the query builder based on parsed parameters and options.
    * @param queryBuilder - The QueryBuilder instance.
    * @param params - Parsed query parameters.
-   * @param options - Query request configuration.
+   * @param config - Query request configuration.
    */
   private _applyFilters(
     queryBuilder: QueryBuilder,
-    params: ReturnType<QueryPatternExecutor['_parseQueryParameters']>,
-    options: QueryRequestConfig
+    params: ReturnType<FluentPatternExecutor['_parseFluentRequestQuery']>,
+    config: FluentExecuteConfig
   ): void {
     const { id, ids, filter, excluded } = params;
 
@@ -85,7 +92,7 @@ export class QueryPatternExecutor {
       queryBuilder.match({ _id: { $in: objectIds } });
     } else {
       // Apply general filters
-      const filterFields = this._getFilterFieldsForModel(options.model);
+      const filterFields = this._getFilterFieldsForModel(config.model);
       if (filter && filterFields.length > 0) {
         const ors = filterFields.map((field) => ({
           [field]: { $regex: filter, $options: 'i' },
@@ -119,7 +126,9 @@ export class QueryPatternExecutor {
    * @param params - Parsed query parameters.
    * @returns Execution parameters.
    */
-  private _buildExecutionParameters(params: ReturnType<QueryPatternExecutor['_parseQueryParameters']>): {
+  private _buildExecutionConfig(
+    params: ReturnType<FluentPatternExecutor['_parseFluentRequestQuery']>
+  ): {
     isOne: boolean;
     limit?: number;
     skip?: number;
@@ -133,22 +142,21 @@ export class QueryPatternExecutor {
   }
 
   /**
-   * Executes the fluent query based on the provided options.
-   * @param options - Configuration for the query request.
+   * Executes the fluent query based on the provided configs.
+   * @param config - Configuration for the query request.
    * @returns Promise resolving to a Codec containing the response.
    */
-  public async exec<T = any>(options: QueryRequestConfig): Promise<Codec<FluentResponse>> {
+  public async exec<T = any>(config: FluentExecuteConfig): Promise<Codec<FluentResponseBody>> {
     try {
-      const queryParams = this._parseQueryParameters(options.req.query as FluentQuery);
-      const queryBuilder = new QueryBuilder(options);
+      const queryParams = this._parseFluentRequestQuery(config.req.query as FluentRequestQuery);
+      const queryBuilder = new QueryBuilder(config);
 
-      this._applyFilters(queryBuilder, queryParams, options);
-
-      const execParams = this._buildExecutionParameters(queryParams);
-      return await queryBuilder.exec(execParams);
+      this._applyFilters(queryBuilder, queryParams, config);
+      const execConfig = this._buildExecutionConfig(queryParams);
+      return await queryBuilder.exec(execConfig);
     } catch (err) {
       console.error('[ERROR - QueryPatternExecutor]', err);
-      return new Codec<FluentResponse>({ data: [], meta: { total: 0 } }, 500);
+      return new Codec<FluentResponseBody>({ data: [], meta: { total: 0 } }, 500);
     }
   }
 }
