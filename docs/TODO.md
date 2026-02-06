@@ -42,6 +42,13 @@ Außerdem möchte ich Kernelemente die ich in verschiedenen Projekten nutzen kö
 }
 ```
 
+### TODO
+
+- Es fehlt noch eine Dynamische Auth Validierung im FluentPatternExecutor
+- Es fehlt auch noch die EOL Abfrage, das ganze soll auch möglichst Dynamisch sein
+- Die Filter(Felder der Collection, also nicht nach q und den feldern filtern) Überprüfen/Überarbeiten
+- Das Auth verfahren darf/muss für jede route speziell an und aus geschaltet werden
+
 
 ## Unsortiert
 GET    /api/v1/users

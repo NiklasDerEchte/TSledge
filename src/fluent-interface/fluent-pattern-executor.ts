@@ -1,13 +1,10 @@
 import mongoose from 'mongoose';
 import {
-  FluentResponseBody,
   FluentRequestQuery,
-  FilterFields,
-  Codec,
-  FluentExecuteConfig,
   FluentAPIPath,
+  FluentExpressRequest,
 } from './types';
-import { QueryBuilder } from './query-builder';
+import { Codec, DefaultResponseBody, PromiseDefaultCodec, QueryBuilder } from '../core/index';
 
 export class FluentPatternExecutor {
   private static _singleton: FluentPatternExecutor;
@@ -29,8 +26,10 @@ export class FluentPatternExecutor {
 
   public static getInstance(): FluentPatternExecutor {
     if (FluentPatternExecutor._singleton == undefined) {
-      throw new Error('FluentPatternExecutor instance has not been created yet. Please create an instance before calling getInstance().');
-    } 
+      throw new Error(
+        'FluentPatternExecutor instance has not been created yet. Please create an instance before calling getInstance().'
+      );
+    }
     return FluentPatternExecutor._singleton;
   }
 
@@ -81,7 +80,7 @@ export class FluentPatternExecutor {
   private _applyFilters(
     queryBuilder: QueryBuilder,
     params: ReturnType<FluentPatternExecutor['_parseFluentRequestQuery']>,
-    config: FluentExecuteConfig
+    model: mongoose.Model<any>
   ): void {
     const { id, ids, filter, excluded } = params;
 
@@ -92,7 +91,7 @@ export class FluentPatternExecutor {
       queryBuilder.match({ _id: { $in: objectIds } });
     } else {
       // Apply general filters
-      const filterFields = this._getFilterFieldsForModel(config.model);
+      const filterFields = this._getFilterFieldsForModel(model);
       if (filter && filterFields.length > 0) {
         const ors = filterFields.map((field) => ({
           [field]: { $regex: filter, $options: 'i' },
@@ -111,7 +110,7 @@ export class FluentPatternExecutor {
    * @param model - The Mongoose model.
    * @returns Array of filter fields.
    */
-  private _getFilterFieldsForModel(model: mongoose.Model<any>): FilterFields {
+  private _getFilterFieldsForModel(model: mongoose.Model<any>): string[] {
     for (const path of this._paths) {
       if (path.model.collection.name === model.collection.name) {
         // Assuming filters are defined in the path; adjust as needed
@@ -142,21 +141,24 @@ export class FluentPatternExecutor {
   }
 
   /**
-   * Executes the fluent query based on the provided configs.
-   * @param config - Configuration for the query request.
-   * @returns Promise resolving to a Codec containing the response.
+   * Executes the query builder with the applied filters and execution parameters.
+   * @param req
+   * @param queryBuilder
+   * @returns
    */
-  public async exec<T = any>(config: FluentExecuteConfig): Promise<Codec<FluentResponseBody>> {
+  public async exec<T = any>(
+    req: FluentExpressRequest,
+    queryBuilder: QueryBuilder
+  ): PromiseDefaultCodec {
     try {
-      const queryParams = this._parseFluentRequestQuery(config.req.query as FluentRequestQuery);
-      const queryBuilder = new QueryBuilder(config);
+      const queryParams = this._parseFluentRequestQuery(req.query as FluentRequestQuery);
 
-      this._applyFilters(queryBuilder, queryParams, config);
+      this._applyFilters(queryBuilder, queryParams, queryBuilder.getConfig().model);
       const execConfig = this._buildExecutionConfig(queryParams);
       return await queryBuilder.exec(execConfig);
     } catch (err) {
       console.error('[ERROR - QueryPatternExecutor]', err);
-      return new Codec<FluentResponseBody>({ data: [], meta: { total: 0 } }, 500);
+      return new Codec<DefaultResponseBody>({ data: [], meta: { total: 0 } }, 500);
     }
   }
 }

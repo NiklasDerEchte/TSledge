@@ -1,28 +1,32 @@
 import mongoose from 'mongoose';
-import { Codec, FluentResponseBody, JoinRelation, QueryBuilderExecuteConfig, FluentExecuteConfig } from './types';
+import { Codec, DefaultResponseBody, JoinRelation, PromiseDefaultCodec, QueryBuilderConfig } from './types';
 
 export class QueryBuilder {
-  private _config: FluentExecuteConfig;
+  private _config: QueryBuilderConfig;
   private _matchConditions: Record<string, any> = {};
   private _stages: any[] = [];
   private _relations: JoinRelation[] = [];
   private _unsetFields: string[] = [];
 
-  constructor(config: FluentExecuteConfig) {
+  constructor(config: QueryBuilderConfig) {
     this._config = config;
     this._applyPathOptions();
-    if (this._config.match && Object.keys(this._config.match).length) {
-      this.match(this._config.match);
-    }
-    this.stage(this._config.stages);
   }
 
   /**
    * Generates the aggregation pipeline based on the current configuration of the QueryBuilder.
-   * @returns 
+   * @returns
    */
   public getAggregationPipeline(): any[] {
     return this._generatePipeline();
+  }
+
+  /**
+   * Returns the current configuration of the QueryBuilder, including model, select fields, and any applied options.
+   * @returns
+   */
+  public getConfig(): QueryBuilderConfig {
+    return this._config;
   }
 
   /**
@@ -150,7 +154,7 @@ export class QueryBuilder {
    * Generates the list of fields to unset based on schema select options.
    * @param config - The query request configuration.
    */
-  private _generateSchemaUnsetList(config: FluentExecuteConfig) {
+  private _generateSchemaUnsetList(config: QueryBuilderConfig) {
     this._unsetFields = [];
     let unset = this._collectSelectFalse(config.model.schema, undefined, config.select);
     for (const relation of this._relations) {
@@ -219,13 +223,17 @@ export class QueryBuilder {
    * @param config - Parameters for the query execution.
    * @returns The collection response wrapped in a Codec.
    */
-  async exec<T = any>(config: QueryBuilderExecuteConfig): Promise<Codec<FluentResponseBody>> {
+  async exec<T = any>(config?: {
+    isOne?: boolean;
+    limit?: number;
+    skip?: number;
+  }): PromiseDefaultCodec {
     try {
       const pipeline = this._generatePipeline();
 
       const countPipeline = [...pipeline, { $count: 'n' }];
       const queryPipeline = [...pipeline];
-      if (!config.isOne) {
+      if (config && !config.isOne) {
         if (config.skip) queryPipeline.push({ $skip: config.skip });
         if (config.limit) queryPipeline.push({ $limit: config.limit });
       }
@@ -236,14 +244,15 @@ export class QueryBuilder {
       ]);
 
       const totalCount = countRes && countRes[0] ? countRes[0].n : 0;
-      const documents = config.isOne
-        ? await this._processSingleDocument<T>(res)
-        : await this._processMultipleDocuments<T>(res);
+      const documents =
+        config && config.isOne
+          ? await this._processSingleDocument<T>(res)
+          : await this._processMultipleDocuments<T>(res);
 
-      return new Codec<FluentResponseBody>({ data: documents, meta: { total: totalCount } }, 200);
+      return new Codec<DefaultResponseBody>({ data: documents, meta: { total: totalCount } }, 200);
     } catch (err) {
       console.error('[ERROR - QueryBuilder]', err);
-      return new Codec<FluentResponseBody>({ data: [], meta: { total: 0 } }, 500);
+      return new Codec<DefaultResponseBody>({ data: [], meta: { total: 0 } }, 500);
     }
   }
 

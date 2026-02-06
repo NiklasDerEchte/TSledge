@@ -1,5 +1,5 @@
 import express from 'express';
-import { FluentExpressRequest, FluentExpressResponse, FluentPatternExecutor } from '../src';
+import { FluentExpressRequest, FluentExpressResponse, FluentPatternExecutor, QueryBuilder } from '../src';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -34,10 +34,10 @@ router.get(
         res.status(400).json({});
         return;
       }
-      let codec = await FluentPatternExecutor.getInstance().exec({
-        model: model,
-        req: req,
+      let queryBuilder = new QueryBuilder({
+        model: model
       });
+      let codec = await FluentPatternExecutor.getInstance().exec(req, queryBuilder);
 
       codec.sendToClient(res);
     } catch (e) {

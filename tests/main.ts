@@ -10,7 +10,6 @@ const URI = process.env.MONGODB_URI as string;
 let fluentApi: tsledge.FluentAPIPath[] = [
   {
     model: User,
-    fields: ['email']
   }
 ];
 export async function setup() {
