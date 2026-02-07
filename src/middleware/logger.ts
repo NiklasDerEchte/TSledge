@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { getCurrentDateString } from '../utils';
 
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   res.on('finish', () => {
@@ -17,6 +18,6 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
 }
 
 export function errorLogger(err: any, req: any, res: any, next: NextFunction) {
-  console.error(`🛑 [${new Date().toISOString()}] Error in ${req.method} ${req.originalUrl}:`, err);
+  console.error(`🛑 [${getCurrentDateString()}] Error in ${req.method} ${req.originalUrl}:`, err);
   res.status(500).json();
 }

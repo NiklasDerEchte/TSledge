@@ -65,7 +65,7 @@ export enum HttpMethod {
   PUT = 'put',
 }
 
-export interface RequestConfig {
+export interface HTTPRequestConfig {
   url: string;
   method?: HttpMethod;
   /**
