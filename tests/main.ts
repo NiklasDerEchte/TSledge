@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import * as tsledge from '../src/index';
 import User from './models/user';
 import router from './routes';
+import userGroup from './models/user-group';
 
 dotenv.config();
 
@@ -10,7 +11,10 @@ const URI = process.env.MONGODB_URI as string;
 let fluentApi: tsledge.FluentAPIPath[] = [
   {
     model: User,
-  }
+  },
+  {
+    model: userGroup,
+  },
 ];
 export async function setup() {
   new tsledge.FluentPatternExecutor(fluentApi);
