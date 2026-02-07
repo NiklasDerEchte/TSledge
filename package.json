@@ -19,7 +19,7 @@
     "dev": "ts-node-dev --respawn tests/main.ts",
     "repl": "ts-node --project tsconfig.json ./scripts/repl.ts",
     "build": "tsc",
-    "publish": "tsc && npm publish"
+    "npmjs": "tsc && npm publish"
   },
   "dependencies": {
     "cors": "^2.8.6",
