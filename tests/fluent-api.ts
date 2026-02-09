@@ -1,5 +1,5 @@
 import express from 'express';
-import { FluentExpressRequest, FluentExpressResponse, FluentPatternExecutor, QueryBuilder } from '../src';
+import { FluentExpressRequest, FluentExpressResponse, FluentPatternHandler, QueryBuilder } from '../src';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -37,7 +37,7 @@ router.get(
       let queryBuilder = new QueryBuilder({
         model: model
       });
-      let codec = await FluentPatternExecutor.getInstance().exec(req, queryBuilder);
+      let codec = await FluentPatternHandler.getInstance().exec(req, queryBuilder);
 
       codec.sendToClient(res);
     } catch (e) {

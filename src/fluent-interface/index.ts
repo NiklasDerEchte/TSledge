@@ -1,2 +1,2 @@
-export * from './fluent-pattern-executor';
+export * from './fluent-pattern-handler';
 export * from './types';

@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 import { EXIT_CODE_GENERAL_ERROR, EXIT_CODE_INVALID_CONFIG } from "../exitCodes";
 import { getCurrentDateString } from "../utils";
 
+/**
+ * Connects to MongoDB using Mongoose
+ * @param uri 
+ */
 export async function connectMongoDB(uri: string) {
   if(uri == null || uri == undefined || uri.length == 0) {
     console.error(`🛑 [${getCurrentDateString()}] Error: MongoDB URI is not provided`);

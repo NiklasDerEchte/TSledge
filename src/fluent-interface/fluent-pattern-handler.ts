@@ -6,8 +6,8 @@ import {
 } from './types';
 import { Codec, DefaultResponseBody, PromiseDefaultCodec, QueryBuilder } from '../core/index';
 
-export class FluentPatternExecutor {
-  private static _singleton: FluentPatternExecutor;
+export class FluentPatternHandler {
+  private static _singleton: FluentPatternHandler;
   private _paths: FluentAPIPath[];
 
   /**
@@ -15,22 +15,22 @@ export class FluentPatternExecutor {
    * @param paths - Array of query pattern paths for filtering.
    */
   constructor(paths: FluentAPIPath[] = []) {
-    if (FluentPatternExecutor._singleton) {
+    if (FluentPatternHandler._singleton) {
       throw new Error(
-        'FluentPatternExecutor is a singleton class. Use FluentPatternExecutor.getInstance() to access the instance.'
+        'FluentPatternHandler is a singleton class. Use FluentPatternHandler.getInstance() to access the instance.'
       );
     }
     this._paths = paths;
-    FluentPatternExecutor._singleton = this;
+    FluentPatternHandler._singleton = this;
   }
 
-  public static getInstance(): FluentPatternExecutor {
-    if (FluentPatternExecutor._singleton == undefined) {
+  public static getInstance(): FluentPatternHandler {
+    if (FluentPatternHandler._singleton == undefined) {
       throw new Error(
-        'FluentPatternExecutor instance has not been created yet. Please create an instance before calling getInstance().'
+        'FluentPatternHandler instance has not been created yet. Please create an instance before calling getInstance().'
       );
     }
-    return FluentPatternExecutor._singleton;
+    return FluentPatternHandler._singleton;
   }
 
   /**
@@ -79,7 +79,7 @@ export class FluentPatternExecutor {
    */
   private _applyFilters(
     queryBuilder: QueryBuilder,
-    params: ReturnType<FluentPatternExecutor['_parseFluentRequestQuery']>
+    params: ReturnType<FluentPatternHandler['_parseFluentRequestQuery']>
   ): void {
     const { id, ids, filter, excluded } = params;
 
@@ -125,7 +125,7 @@ export class FluentPatternExecutor {
    * @returns Execution parameters.
    */
   private _buildExecutionConfig(
-    params: ReturnType<FluentPatternExecutor['_parseFluentRequestQuery']>
+    params: ReturnType<FluentPatternHandler['_parseFluentRequestQuery']>
   ): {
     isOne: boolean;
     limit?: number;

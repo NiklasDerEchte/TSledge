@@ -17,7 +17,7 @@ let fluentApi: tsledge.FluentAPIPath[] = [
   },
 ];
 export async function setup() {
-  new tsledge.FluentPatternExecutor(fluentApi);
+  new tsledge.FluentPatternHandler(fluentApi);
   tsledge.connectMongoDB(URI).then(() => {
     let app = tsledge.createApp();
     app.use('/', router);
