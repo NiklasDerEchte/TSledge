@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
 import { Request, Response } from 'express';
-import { DefaultResponseBody } from '../core';
+import { DefaultResponseBody, KeysEnum } from '../core/index';
 
 export interface FluentRequestParams extends Record<string, string> {
   collection: string;
 }
+
 export interface FluentRequestBody {} // GET requests do not have body
 
 export interface FluentRequestQuery {
@@ -17,11 +18,24 @@ export interface FluentRequestQuery {
   excluded?: string; // as JSON
 }
 
+/**
+ * Attributes of FluentRequestQuery used for validation and parsing.
+ */
+export const fluentRequestQueryAttributes: KeysEnum<FluentRequestQuery> = {
+  id: '',
+  ids: '',
+  filter: '',
+  offset: '',
+  limit: '',
+  order: '',
+  excluded: '',
+};
+
 export interface FluentAPIPath<T = any> {
   // Required: Model
   model: mongoose.Model<T>;
-  // Optional: Query filters
-  filters?: Record<string, any>;
+  // Optional: Query filters, fields in the model by which you can filter
+  filters?: string[];
 }
 
 export type FluentExpressRequest = Request<

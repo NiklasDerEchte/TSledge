@@ -3,8 +3,19 @@ import {
   FluentRequestQuery,
   FluentAPIPath,
   FluentExpressRequest,
+  fluentRequestQueryAttributes,
 } from './types';
 import { Codec, DefaultResponseBody, PromiseDefaultCodec, QueryBuilder } from '../core/index';
+
+interface FluentPatternParameter {
+  id: string;
+  ids: string[];
+  excluded: string[];
+  filterFields: Record<string, string>;
+  filter: string;
+  limit: string;
+  offset: string;
+}
 
 export class FluentPatternHandler {
   private static _singleton: FluentPatternHandler;
@@ -38,15 +49,20 @@ export class FluentPatternHandler {
    * @param query - The query object from the request.
    * @returns Parsed query parameters.
    */
-  private _parseFluentRequestQuery(query: FluentRequestQuery): {
-    filter?: string;
-    limit?: string;
-    offset?: string;
-    id?: string;
-    excluded?: string[];
-    ids?: string[];
-  } {
+  private _parseFluentRequestQuery(query: FluentRequestQuery): FluentPatternParameter {
     const { filter, limit = '5', offset = '0', id, excluded: excludedJSON, ids: idsJSON } = query;
+
+    const queryKeys = Object.keys(fluentRequestQueryAttributes);
+    let filterFields: Record<string, string> = {};
+    for (const [key, value] of Object.entries(query as Record<string, any>)) {
+      if (queryKeys.includes(key)) continue;
+      if (value == undefined) continue;
+      try {
+        filterFields[key] = typeof value === 'string' ? value : JSON.stringify(value);
+      } catch (e) {
+        filterFields[key] = String(value);
+      }
+    }
 
     let excluded: string[] | undefined;
     if (excludedJSON) {
@@ -68,7 +84,7 @@ export class FluentPatternHandler {
       }
     }
 
-    return { filter, limit, offset, id, excluded, ids };
+    return { filter, limit, offset, id, excluded, ids, filterFields } as FluentPatternParameter;
   }
 
   /**
@@ -77,10 +93,7 @@ export class FluentPatternHandler {
    * @param params - Parsed query parameters.
    * @param config - Query request configuration.
    */
-  private _applyFilters(
-    queryBuilder: QueryBuilder,
-    params: ReturnType<FluentPatternHandler['_parseFluentRequestQuery']>
-  ): void {
+  private _applyParameters(queryBuilder: QueryBuilder, params: FluentPatternParameter): void {
     const { id, ids, filter, excluded } = params;
 
     if (id) {
@@ -89,13 +102,25 @@ export class FluentPatternHandler {
       const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
       queryBuilder.match({ _id: { $in: objectIds } });
     } else {
-      // Apply general filters
-      const filterFields = this._getFilterFieldsForModel(queryBuilder.getConfig().model);
-      if (filter && filterFields.length > 0) {
-        const ors = filterFields.map((field) => ({
+      // get allowed filter fields
+      const modelFilterFields = this._getFilterFieldsForModel(queryBuilder.getConfig().model);
+      // possible fields filtered by parameter "?filter="
+      if (filter && modelFilterFields.length > 0) {
+        const ors = modelFilterFields.map((field) => ({
           [field]: { $regex: filter, $options: 'i' },
         }));
         queryBuilder.match({ $or: ors });
+      }
+      // custom filter, but only for allowed fields specified via query parameters (e.g. '?username=')
+      if (params.filterFields && Object.keys(params.filterFields).length > 0) {
+        for (const [field, value] of Object.entries(params.filterFields)) {
+          if (!modelFilterFields.includes(field)) {
+            continue;
+          }
+          const match: Record<string, any> = {};
+          match[field] = { $regex: value, $options: 'i' };
+          queryBuilder.match(match);
+        }
       }
       if (excluded && excluded.length > 0) {
         const objectIds = excluded.map((id) => new mongoose.Types.ObjectId(id));
@@ -112,8 +137,10 @@ export class FluentPatternHandler {
   private _getFilterFieldsForModel(model: mongoose.Model<any>): string[] {
     for (const path of this._paths) {
       if (path.model.collection.name === model.collection.name) {
-        // Assuming filters are defined in the path; adjust as needed
-        return path.filters ? Object.keys(path.filters) : [];
+        if (path.filters) {
+          return path.filters;
+        }
+        return [];
       }
     }
     return [];
@@ -124,9 +151,7 @@ export class FluentPatternHandler {
    * @param params - Parsed query parameters.
    * @returns Execution parameters.
    */
-  private _buildExecutionConfig(
-    params: ReturnType<FluentPatternHandler['_parseFluentRequestQuery']>
-  ): {
+  private _buildExecutionConfig(params: FluentPatternParameter): {
     isOne: boolean;
     limit?: number;
     skip?: number;
@@ -151,8 +176,7 @@ export class FluentPatternHandler {
   ): PromiseDefaultCodec {
     try {
       const queryParams = this._parseFluentRequestQuery(req.query as FluentRequestQuery);
-
-      this._applyFilters(queryBuilder, queryParams);
+      this._applyParameters(queryBuilder, queryParams);
       const execConfig = this._buildExecutionConfig(queryParams);
       return await queryBuilder.exec(execConfig);
     } catch (err) {

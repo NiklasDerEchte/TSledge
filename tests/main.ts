@@ -11,6 +11,7 @@ const URI = process.env.MONGODB_URI as string;
 let fluentApi: tsledge.FluentAPIPath[] = [
   {
     model: User,
+    filters: ['username']
   },
   {
     model: userGroup,
