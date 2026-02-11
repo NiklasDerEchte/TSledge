@@ -9,7 +9,7 @@ const UserGroupSchema = new mongoose.Schema<UserGroupDocument>(
   {
     name: { type: String, unique: true, required: true },
   },
-  { collection: 'user-groups', timestamps: true }
+  { collection: 'user_groups', timestamps: true }
 );
 
 export default mongoose.model<UserGroupDocument>('UserGroup', UserGroupSchema);

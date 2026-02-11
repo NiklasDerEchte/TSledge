@@ -43,11 +43,8 @@ Außerdem möchte ich Kernelemente die ich in verschiedenen Projekten nutzen kö
 ```
 
 ### TODO
-
-- Es fehlt noch eine Dynamische Auth Validierung im FluentPatternHandler
-- Es fehlt auch noch die EOL Abfrage, das ganze soll auch möglichst Dynamisch sein
-- Die Filter(Felder der Collection, also nicht nach q und den feldern filtern) Überprüfen/Überarbeiten
-- Das Auth verfahren darf/muss für jede route speziell an und aus geschaltet werden
+- Die Api Auth Routen müssen irgendwie dynamisch gemacht werden, sodass man gleich auch seine eigenen user daten speichern kann
+- Die AuthUser Payload in der middleware muss durch eine dynamische variable erweitert werden, sodass gleich durch den identifier ein user geladen werden kann
 - In CraftERP gab es ein Problem mit dem Schama "ref", das muss hier mal getestet und ausgebaut werden
 
 
