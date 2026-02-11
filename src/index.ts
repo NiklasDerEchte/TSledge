@@ -3,7 +3,6 @@ export * from './middleware/index';
 export * from './fluent-interface/index';
 export * from './core/index';
 export * from './utils/index';
-export * from './api/index';
 export * from './models/index';
 export * from './app';
 export * from './types';

@@ -1,7 +1,8 @@
 import { Request } from 'express';
 import jwt from 'jsonwebtoken';
-import { AuthUser, TokenBlocklist } from '../models';
+import { AuthUser, TokenBlocklist } from '../../models';
 import { AuthUserPayload } from './types';
+import { JwtRefreshSecret, JwtSecret } from '../../utils';
 
 export interface TokenVerificationResult {
   isTokenValid: boolean;
@@ -9,9 +10,6 @@ export interface TokenVerificationResult {
   isUserBlocked: boolean;
   payload: AuthUserPayload | any;
 }
-
-export const JwtSecret = process.env.JWT_SECRET || 'secret';
-export const JwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'refresh_secret';
 
 const FORBIDDEN = 403;
 const UNAUTHORIZED = 401; // refresh the tokens
