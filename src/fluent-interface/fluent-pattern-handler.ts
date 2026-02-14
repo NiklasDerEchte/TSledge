@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import {
   FluentRequestQuery,
-  FluentAPIPath,
+  FluentApiOption,
   FluentExpressRequest,
   fluentRequestQueryAttributes,
   FluentMiddleware,
@@ -20,37 +20,37 @@ interface FluentPatternParameter {
 
 export class FluentPatternHandler {
   private static _singleton: FluentPatternHandler;
-  private _paths: FluentAPIPath[];
+  private _options: FluentApiOption[];
   private _execMiddlewareFunctions: FluentMiddleware[] = [];
 
   /**
    * Constructor for QueryPatternExecutor.
-   * @param paths - Array of query pattern paths for filtering.
+   * @param options - Array of query pattern options for filtering.
    */
-  constructor(paths: FluentAPIPath[] = [], execMiddleware: FluentMiddleware[] = []) {
+  constructor(options: FluentApiOption[] = [], execMiddleware: FluentMiddleware[] = []) {
     if (FluentPatternHandler._singleton) {
       throw new Error(
         'FluentPatternHandler is a singleton class. Use FluentPatternHandler.getInstance() to access the instance.'
       );
     }
-    this._paths = paths;
+    this._options = options;
     this._execMiddlewareFunctions = execMiddleware;
     FluentPatternHandler._singleton = this;
   }
 
   /**
-   * Initializes the singleton instance of FluentPatternHandler with the provided paths.
-   * @param paths - Array of query pattern paths for filtering.
+   * Initializes the singleton instance of FluentPatternHandler with the provided options.
+   * @param options - Array of query pattern options for filtering.
    * @returns Singleton instance of FluentPatternHandler.
    */
   public static init(
-    paths: FluentAPIPath[] = [],
+    options: FluentApiOption[] = [],
     execMiddleware: FluentMiddleware[] = []
   ): FluentPatternHandler {
     if (FluentPatternHandler._singleton != undefined) {
       throw new Error('FluentPatternHandler is already initialized');
     }
-    FluentPatternHandler._singleton = new FluentPatternHandler(paths, execMiddleware);
+    FluentPatternHandler._singleton = new FluentPatternHandler(options, execMiddleware);
     return FluentPatternHandler._singleton;
   }
 
@@ -153,15 +153,15 @@ export class FluentPatternHandler {
   }
 
   /**
-   * Retrieves filter fields for the given model from the paths configuration.
+   * Retrieves filter fields for the given model from the options configuration.
    * @param model - The Mongoose model.
    * @returns Array of filter fields.
    */
   private _getFilterFieldsForModel(model: mongoose.Model<any>): string[] {
-    for (const path of this._paths) {
-      if (path.model.collection.name === model.collection.name) {
-        if (path.filters) {
-          return path.filters;
+    for (const option of this._options) {
+      if (option.model.collection.name === model.collection.name) {
+        if (option.filters) {
+          return option.filters;
         }
         return [];
       }

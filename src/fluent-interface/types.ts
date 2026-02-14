@@ -33,7 +33,7 @@ export const fluentRequestQueryAttributes: KeysEnum<FluentRequestQuery> = {
   excluded: '',
 };
 
-export interface FluentAPIPath<T = any> {
+export interface FluentApiOption<T = any> {
   // Required: Model
   model: mongoose.Model<T>;
   // Optional: Query filters, fields in the model by which you can filter
