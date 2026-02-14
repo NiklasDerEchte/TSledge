@@ -3,7 +3,6 @@ declare global {
     export interface Request {
       user?: AuthUserPayload;
       token?: string;
-      credentials?: JWTCredentials;
     }
   }
 }

@@ -27,7 +27,7 @@ async function generateCredentials(auth: AuthUserDocument): Promise<JWTCredentia
     jti = crypto.randomUUID();
     blocked = await TokenBlocklist.findOne({ jti });
   } while (blocked != undefined);
-  const user = await AuthUser.findOne({ indetifier: auth.identifier }).lean();
+  const user = await AuthUser.findOne({ identifier: auth.identifier }).lean();
   if (!user) {
     return undefined;
   }
@@ -58,7 +58,7 @@ export async function register(req: Request, res: any, next: any) {
     return res.sendStatus(FORBIDDEN);
   }
   identifier = identifier.toLowerCase();
-  let user = await AuthUser.find({ identifier });
+  let user = await AuthUser.findOne({ identifier });
   if (user) {
     return res.sendStatus(BAD_REQUEST);
   }
@@ -71,7 +71,15 @@ export async function register(req: Request, res: any, next: any) {
   next();
 }
 
-export async function login(req: Request, res: any, next: any) {
+/**
+ * Handles user login by validating credentials and generating JWT tokens.
+ * Passes data in res.locals.credentials for the next middleware to use.
+ * @param req 
+ * @param res 
+ * @param next 
+ * @returns 
+ */
+export async function login(req: Request, res: any & { locals: { credentials?: JWTCredentials } }, next: any) {
   let { identifier = undefined, secret = undefined } = req.body || {};
   if (!identifier || !secret) {
     return res.sendStatus(FORBIDDEN);
@@ -92,7 +100,7 @@ export async function login(req: Request, res: any, next: any) {
   if (!credentials) {
     return res.sendStatus(BAD_REQUEST);
   }
-  req.credentials = credentials;
+  res.locals.credentials = credentials;
   next();
 }
 
