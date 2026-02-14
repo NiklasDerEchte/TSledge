@@ -4,6 +4,7 @@ import {
   FluentAPIPath,
   FluentExpressRequest,
   fluentRequestQueryAttributes,
+  FluentMiddleware,
 } from './types';
 import { Codec, DefaultResponseBody, PromiseDefaultCodec, QueryBuilder } from '../core/index';
 
@@ -20,18 +21,20 @@ interface FluentPatternParameter {
 export class FluentPatternHandler {
   private static _singleton: FluentPatternHandler;
   private _paths: FluentAPIPath[];
+  private _execMiddlewareFunctions: FluentMiddleware[] = [];
 
   /**
    * Constructor for QueryPatternExecutor.
    * @param paths - Array of query pattern paths for filtering.
    */
-  constructor(paths: FluentAPIPath[] = []) {
+  constructor(paths: FluentAPIPath[] = [], execMiddleware: FluentMiddleware[] = []) {
     if (FluentPatternHandler._singleton) {
       throw new Error(
         'FluentPatternHandler is a singleton class. Use FluentPatternHandler.getInstance() to access the instance.'
       );
     }
     this._paths = paths;
+    this._execMiddlewareFunctions = execMiddleware;
     FluentPatternHandler._singleton = this;
   }
 
@@ -40,11 +43,14 @@ export class FluentPatternHandler {
    * @param paths - Array of query pattern paths for filtering.
    * @returns Singleton instance of FluentPatternHandler.
    */
-  public static init(paths: FluentAPIPath[] = []): FluentPatternHandler {
+  public static init(
+    paths: FluentAPIPath[] = [],
+    execMiddleware: FluentMiddleware[] = []
+  ): FluentPatternHandler {
     if (FluentPatternHandler._singleton != undefined) {
       throw new Error('FluentPatternHandler is already initialized');
     }
-    FluentPatternHandler._singleton = new FluentPatternHandler(paths);
+    FluentPatternHandler._singleton = new FluentPatternHandler(paths, execMiddleware);
     return FluentPatternHandler._singleton;
   }
 
@@ -192,6 +198,11 @@ export class FluentPatternHandler {
     queryBuilder: QueryBuilder
   ): PromiseDefaultCodec {
     try {
+      if (this._execMiddlewareFunctions && this._execMiddlewareFunctions.length > 0) {
+        this._execMiddlewareFunctions.forEach((func: FluentMiddleware) => {
+          func(queryBuilder);
+        });
+      }
       const queryParams = this._parseFluentRequestQuery(req.query as FluentRequestQuery);
       this._applyParameters(queryBuilder, queryParams);
       const execConfig = this._buildExecutionConfig(queryParams);

@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import { Request, Response } from 'express';
-import { DefaultResponseBody, KeysEnum } from '../core/index';
+import { DefaultResponseBody, KeysEnum, QueryBuilder } from '../core/index';
+
+export type FluentMiddleware = (queryBuilder: QueryBuilder) => void;
 
 export interface FluentRequestParams extends Record<string, string> {
   collection: string;
