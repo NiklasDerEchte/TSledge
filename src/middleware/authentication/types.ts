@@ -1,12 +1,3 @@
-declare global {
-  namespace Express {
-    export interface Request {
-      user?: AuthUserPayload;
-      token?: string;
-    }
-  }
-}
-
 export interface AuthUserPayload {
   identifier: string; // identifier is required
   jti: string; // jwt id, is required

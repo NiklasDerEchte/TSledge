@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthUser, TokenBlocklist } from '../../models';
 import { AuthUserPayload } from './types';
@@ -16,23 +16,33 @@ const UNAUTHORIZED = 401; // refresh the tokens
 
 /**
  * Express middleware to require a valid JWT token for access. Checks the token against the blocklist and user status.
+ * Adding user and access token to ``res.locals.user`` and ``res.locals.token``
  * @param req 
  * @param res 
  * @param next 
  * @returns 
  */
-export async function jwtRequired(req: Request, res: any, next: any) {
+export async function jwtRequired(
+  req: Request,
+  res: Response & { locals: { user: AuthUserPayload; token: string } },
+  next: any
+) {
   return validateJwt(req, res, next, JwtSecret);
 }
 
 /**
  * Express middleware to require a valid refresh JWT token for access. Checks the token against the blocklist and user status.
+ * Adding user and access token to ``res.locals.user`` and ``res.locals.token``
  * @param req 
  * @param res 
  * @param next 
  * @returns 
  */
-export async function jwtRefreshRequired(req: Request, res: any, next: any) {
+export async function jwtRefreshRequired(
+  req: Request,
+  res: Response & { locals: { user: AuthUserPayload; token: string } },
+  next: any
+) {
   return validateJwt(req, res, next, JwtRefreshSecret);
 }
 
@@ -94,13 +104,15 @@ export async function verifyToken(token: string, jwtSecret: string): Promise<Tok
 
 /**
  * Helper function to validate JWT tokens in Express middleware, used by both jwtRequired and jwtRefreshRequired.
+ * Checks the token against the blocklist and user status, and passes the decoded payload in ``res.locals.user`` if valid.
+ * ``res.locals.token`` is set to the raw token.
  * @param req 
  * @param res 
  * @param next 
  * @param jwtSecret 
  * @returns 
  */
-async function validateJwt(req: Request, res: any, next: any, jwtSecret: string) {
+async function validateJwt(req: Request, res: Response & { locals: { user: AuthUserPayload, token: string } }, next: any, jwtSecret: string) {
   const authHeader = req.headers['authorization'];
   if (!authHeader) return res.sendStatus(FORBIDDEN);
   const token = authHeader.split(' ')[1];
@@ -119,8 +131,8 @@ async function validateJwt(req: Request, res: any, next: any, jwtSecret: string)
       console.log('[WARN] JWT token for blocked user');
       return res.sendStatus(FORBIDDEN);
     }
-    req.user = result.payload;
-    req.token = token;
+    res.locals.user = result.payload;
+    res.locals.token = token;
     next();
   } catch (err) {
     console.log('[ERROR] JWT validation error:', err);

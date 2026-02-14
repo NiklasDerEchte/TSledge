@@ -1,19 +1,17 @@
-import express, { Request } from 'express';
+import express, { Request, Response } from 'express';
 import { AuthUser, AuthUserDocument, TokenBlocklist } from '../../models';
 import bcrypt from 'bcrypt';
 import { JWTCredentials, AuthUserPayload } from './types';
 import { encodeToBase64, JwtRefreshSecret, JwtSecret, validateString } from '../../utils';
 import jwt from 'jsonwebtoken';
 import { jwtRefreshRequired } from './validation';
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
 const NOT_FOUND = 404;
 const FORBIDDEN = 403;
 const BAD_REQUEST = 400;
-
-// TODO Es muss eine Möglichkeit geschaffen werden, dynamisch die Daten für die AuthUserPayload anzupassen
-// TODO Es muss eine Möglichkeit geschaffen werden, dynamisch die Daten für die JWTCredentials anzupassen
 
 /**
  * Generates JWT access and refresh tokens for a given user.
@@ -52,7 +50,19 @@ async function generateCredentials(auth: AuthUserDocument): Promise<JWTCredentia
   };
 }
 
-export async function register(req: Request, res: any, next: any) {
+/**
+ * Handles user registration by validating input and creating a new user with a hashed password.
+ * Passes the new user without saving in ``res.locals.authUser`` for the next middleware to use.
+ * @param req 
+ * @param res Response & { locals: { authUser: AuthUserDocument } }
+ * @param next 
+ * @returns 
+ */
+export async function authRegister(
+  req: Request,
+  res: Response & { locals: { authUser: AuthUserDocument } },
+  next: any
+) {
   let { identifier = undefined, secret = undefined } = req.body || {};
   if (!identifier || !secret) {
     return res.sendStatus(FORBIDDEN);
@@ -62,24 +72,23 @@ export async function register(req: Request, res: any, next: any) {
   if (user) {
     return res.sendStatus(BAD_REQUEST);
   }
-  let authUser = new AuthUser({
+  res.locals.authUser = new AuthUser({
     identifier: identifier,
     secretHash: await bcrypt.hash(secret, 10),
   });
-  authUser.save();
 
   next();
 }
 
 /**
  * Handles user login by validating credentials and generating JWT tokens.
- * Passes data in res.locals.credentials for the next middleware to use.
+ * Passes data in ``res.locals.credentials`` for the next middleware to use.
  * @param req 
  * @param res 
  * @param next 
  * @returns 
  */
-export async function login(req: Request, res: any & { locals: { credentials?: JWTCredentials } }, next: any) {
+export async function authLogin(req: Request, res: Response & { locals: { credentials: JWTCredentials } }, next: any) {
   let { identifier = undefined, secret = undefined } = req.body || {};
   if (!identifier || !secret) {
     return res.sendStatus(FORBIDDEN);
@@ -104,9 +113,20 @@ export async function login(req: Request, res: any & { locals: { credentials?: J
   next();
 }
 
-export async function logout(req: Request, res: any, next: any) {
+/**
+ * Handles user logout by invalidating the provided refresh token and optionally the access token.
+ * JWTRefresh Token is required
+ * @param req 
+ * @param res Response & { locals: { user: AuthUserPayload; token: string } }
+ * @param next 
+ */
+export async function authLogout(
+  req: Request,
+  res: Response & { locals: { user: AuthUserPayload; token: string } },
+  next: any
+) {
   await jwtRefreshRequired(req, res, async () => {
-    const refreshToken = req.token;
+    const refreshToken = res.locals.token;
     if (!refreshToken) {
       return res.sendStatus(BAD_REQUEST);
     }
@@ -133,8 +153,21 @@ export async function logout(req: Request, res: any, next: any) {
   });
 }
 
-export async function refreshJWT(req: Request, res: any, next: any) {
-  const refreshToken = req.token;
+/**
+ * Handles refreshing JWT tokens by validating the provided refresh token and generating new credentials.
+ * Passes new credentials in ``res.locals.credentials`` for the next middleware to use.
+ * @param req 
+ * @param res Response & { locals: { user: AuthUserPayload; token: string; credentials: JWTCredentials } }
+ * @param next 
+ * @returns 
+ */
+export async function authRefresh(
+  req: Request,
+  res: Response & { locals: { user: AuthUserPayload; token: string; credentials: JWTCredentials } },
+  next: any
+) {
+  await jwtRefreshRequired(req, res, async () => {});
+  const refreshToken = res.locals.token;
   if (!refreshToken) {
     return res.sendStatus(BAD_REQUEST);
   }
@@ -165,6 +198,7 @@ export async function refreshJWT(req: Request, res: any, next: any) {
     if (!credentials) {
       return res.sendStatus(BAD_REQUEST);
     }
+    res.locals.credentials = credentials;
     next();
   } catch (err) {
     console.log('[WARN] refreshing JWT:', err);

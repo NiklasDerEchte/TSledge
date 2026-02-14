@@ -1,22 +1,28 @@
-import express from 'express';
-import { jwtRequired, login, logout, refreshJWT, register } from '../src';
+import express, { Response } from 'express';
+import { AuthUserDocument, JWTCredentials, jwtRequired, authLogin, authLogout, authRefresh, authRegister } from '../src';
 
 const router = express.Router();
 
 // TODO Testen und wie kann ich hier custom User daten injecten?
-router.post('/register', register, async (req: any, res: any) => {
-  res.status(200).json({});
-});
+router.post(
+  '/register',
+  authRegister,
+  async (req: any, res: Response & { locals: { authUser: AuthUserDocument } }) => {
+    res.locals.authUser.save();
+    res.status(200).json({});
+  }
+);
 
-router.post('/login', login, async (req: any, res: any) => {
+router.post('/login', authLogin, async (req: any, res: Response & { locals: { credentials: JWTCredentials } }) => {
+  // Here the appUser in credentials can be modified with other data
   res.status(200).json(res.locals.credentials);
 });
 
-router.post('/logout', logout, async (req: any, res: any) => {
+router.post('/logout', authLogout, async (req: any, res: any) => {
   res.status(200).json({});
 });
 
-router.post('/refresh', refreshJWT, async (req: any, res: any) => {
+router.post('/refresh', authRefresh, async (req: any, res: any) => {
   res.status(200).json({});
 });
 
