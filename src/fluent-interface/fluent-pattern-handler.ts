@@ -35,6 +35,23 @@ export class FluentPatternHandler {
     FluentPatternHandler._singleton = this;
   }
 
+  /**
+   * Initializes the singleton instance of FluentPatternHandler with the provided paths.
+   * @param paths - Array of query pattern paths for filtering.
+   * @returns Singleton instance of FluentPatternHandler.
+   */
+  public static init(paths: FluentAPIPath[] = []): FluentPatternHandler {
+    if (FluentPatternHandler._singleton != undefined) {
+      throw new Error('FluentPatternHandler is already initialized');
+    }
+    FluentPatternHandler._singleton = new FluentPatternHandler(paths);
+    return FluentPatternHandler._singleton;
+  }
+
+  /**
+   * Returns the singleton instance of FluentPatternHandler.
+   * @returns Singleton instance of FluentPatternHandler.
+   */
   public static getInstance(): FluentPatternHandler {
     if (FluentPatternHandler._singleton == undefined) {
       throw new Error(
