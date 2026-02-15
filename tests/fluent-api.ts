@@ -37,7 +37,11 @@ router.get(
       let queryBuilder = new QueryBuilder({
         model: model
       });
-      let codec = await FluentPatternHandler.getInstance().exec(req, queryBuilder);
+      let codec = await FluentPatternHandler.getInstance().exec({
+        req,
+        res,
+        queryBuilder
+      });
 
       codec.sendToClient(res);
     } catch (e) {

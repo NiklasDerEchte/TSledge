@@ -2,8 +2,6 @@ import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import { DefaultResponseBody, KeysEnum, QueryBuilder } from '../core/index';
 
-export type FluentMiddleware = (queryBuilder: QueryBuilder) => void;
-
 export interface FluentRequestParams extends Record<string, string> {
   collection: string;
 }
@@ -33,7 +31,7 @@ export const fluentRequestQueryAttributes: KeysEnum<FluentRequestQuery> = {
   excluded: '',
 };
 
-export interface FluentApiOption<T = any> {
+export interface FluentAPIOption<T = any> {
   // Required: Model
   model: mongoose.Model<T>;
   // Optional: Query filters, fields in the model by which you can filter
@@ -48,3 +46,11 @@ export type FluentExpressRequest = Request<
 >;
 
 export type FluentExpressResponse = Response<DefaultResponseBody>;
+
+export type FluentExecParams = {
+  req: FluentExpressRequest;
+  res: FluentExpressResponse;
+  queryBuilder: QueryBuilder;
+};
+
+export type FluentMiddleware = (params: FluentExecParams) => void;

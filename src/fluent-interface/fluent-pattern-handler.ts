@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
 import {
   FluentRequestQuery,
-  FluentApiOption,
-  FluentExpressRequest,
+  FluentAPIOption,
   fluentRequestQueryAttributes,
   FluentMiddleware,
+  FluentExecParams,
 } from './types';
 import { Codec, DefaultResponseBody, PromiseDefaultCodec, QueryBuilder } from '../core/index';
 
@@ -20,14 +20,14 @@ interface FluentPatternParameter {
 
 export class FluentPatternHandler {
   private static _singleton: FluentPatternHandler;
-  private _options: FluentApiOption[];
+  private _options: FluentAPIOption[];
   private _execMiddlewareFunctions: FluentMiddleware[] = [];
 
   /**
    * Constructor for QueryPatternExecutor.
    * @param options - Array of query pattern options for filtering.
    */
-  constructor(options: FluentApiOption[] = [], execMiddleware: FluentMiddleware[] = []) {
+  constructor(options: FluentAPIOption[] = [], execMiddleware: FluentMiddleware[] = []) {
     if (FluentPatternHandler._singleton) {
       throw new Error(
         'FluentPatternHandler is a singleton class. Use FluentPatternHandler.getInstance() to access the instance.'
@@ -44,7 +44,7 @@ export class FluentPatternHandler {
    * @returns Singleton instance of FluentPatternHandler.
    */
   public static init(
-    options: FluentApiOption[] = [],
+    options: FluentAPIOption[] = [],
     execMiddleware: FluentMiddleware[] = []
   ): FluentPatternHandler {
     if (FluentPatternHandler._singleton != undefined) {
@@ -187,26 +187,22 @@ export class FluentPatternHandler {
     };
   }
 
-  /**
-   * Executes the query builder with the applied filters and execution parameters.
-   * @param req
-   * @param queryBuilder
-   * @returns
-   */
-  public async exec<T = any>(
-    req: FluentExpressRequest,
-    queryBuilder: QueryBuilder
-  ): PromiseDefaultCodec {
+/**
+ * Executes the query builder with applied filters and returns the result.
+ * @param params Execution parameters including the query builder and request query.
+ * @returns 
+ */
+  public async exec<T = any>(params: FluentExecParams): PromiseDefaultCodec {
     try {
       if (this._execMiddlewareFunctions && this._execMiddlewareFunctions.length > 0) {
         this._execMiddlewareFunctions.forEach((func: FluentMiddleware) => {
-          func(queryBuilder);
+          func(params);
         });
       }
-      const queryParams = this._parseFluentRequestQuery(req.query as FluentRequestQuery);
-      this._applyParameters(queryBuilder, queryParams);
+      const queryParams = this._parseFluentRequestQuery(params.req.query as FluentRequestQuery);
+      this._applyParameters(params.queryBuilder, queryParams);
       const execConfig = this._buildExecutionConfig(queryParams);
-      return await queryBuilder.exec(execConfig);
+      return await params.queryBuilder.exec(execConfig);
     } catch (err) {
       console.error('[ERROR - QueryPatternExecutor]', err);
       return new Codec<DefaultResponseBody>({ data: [], meta: { total: 0 } }, 500);
