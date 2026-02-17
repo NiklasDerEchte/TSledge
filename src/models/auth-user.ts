@@ -1,10 +1,12 @@
-import mongoose, { Document } from "mongoose";
+import mongoose from "mongoose";
 
-export interface AuthUserDocument extends Document {
+export interface AuthUser {
   identifier: string;
   secretHash: string;
   blockedSince: Date;
 }
+
+export type AuthUserDocument = AuthUser & mongoose.Document;
 
 const AuthUserSchema = new mongoose.Schema<AuthUserDocument>(
   {
@@ -15,4 +17,4 @@ const AuthUserSchema = new mongoose.Schema<AuthUserDocument>(
   { collection: 'auth_users', timestamps: true }
 );
 
-export const AuthUser = mongoose.model<AuthUserDocument>('AuthUser', AuthUserSchema);
+export const AuthUserModel = mongoose.model<AuthUserDocument>('AuthUser', AuthUserSchema);

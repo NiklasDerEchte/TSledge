@@ -1,3 +1,6 @@
+## Ideen
+- Eine Klasse von der man erben kann und dann sein "Model" definieren, ein constructor soll automatisch die public attributes im Editor anzeigen zum übergeben
+
 ## Kern Thema:
 Überarbeitung und Erweiterung der API Endpunkte für Ressourcen.
 Es soll Userfreundlicher und flexibler werden.

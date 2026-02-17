@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
 
-export interface UserGroupDocument extends Document {
+export interface UserGroup{
   name: string;
 }
 
+export type UserGroupDocument = UserGroup & mongoose.Document;
 
 const UserGroupSchema = new mongoose.Schema<UserGroupDocument>(
   {
@@ -12,4 +13,4 @@ const UserGroupSchema = new mongoose.Schema<UserGroupDocument>(
   { collection: 'user_groups', timestamps: true }
 );
 
-export default mongoose.model<UserGroupDocument>('UserGroup', UserGroupSchema);
+export const UserGroupModel = mongoose.model<UserGroupDocument>('UserGroup', UserGroupSchema);

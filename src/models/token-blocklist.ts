@@ -1,8 +1,10 @@
 import mongoose from "mongoose";
 
-export interface TokenBlocklistDocument extends Document {
+export interface TokenBlocklist {
   jti: string;
 }
+
+export type TokenBlocklistDocument = TokenBlocklist & mongoose.Document;
 
 const TokenBlocklistSchema = new mongoose.Schema<TokenBlocklistDocument>(
   {
@@ -11,4 +13,7 @@ const TokenBlocklistSchema = new mongoose.Schema<TokenBlocklistDocument>(
   { collection: 'token_blocklist', timestamps: true }
 );
 
-export const TokenBlocklist = mongoose.model<TokenBlocklistDocument>('TokenBlocklist', TokenBlocklistSchema);
+export const TokenBlocklistModel = mongoose.model<TokenBlocklistDocument>(
+  'TokenBlocklist',
+  TokenBlocklistSchema
+);

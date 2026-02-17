@@ -1,5 +1,13 @@
 import express, { Response } from 'express';
-import { AuthUserDocument, JWTCredentials, jwtRequired, authLogin, authLogout, authRefresh, authRegister } from '../src';
+import {
+  JWTCredentials,
+  jwtRequired,
+  authLogin,
+  authLogout,
+  authRefresh,
+  authRegister,
+  AuthUserDocument,
+} from '../src/index';
 
 const router = express.Router();
 

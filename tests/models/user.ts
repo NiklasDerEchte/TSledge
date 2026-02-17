@@ -1,12 +1,13 @@
 import mongoose from "mongoose";
 
-export interface UserDocument extends Document {
+export interface User {
   ofUserGroup: mongoose.Schema.Types.ObjectId;
   username: string;
   email: string;
   secretHash: string;
 }
 
+export type UserDocument = User & mongoose.Document;
 
 const UserSchema = new mongoose.Schema<UserDocument>(
   {
@@ -30,4 +31,4 @@ UserSchema.set('toJSON', {
   }
 });
 
-export default mongoose.model<UserDocument>('User', UserSchema);
+export const UserModel = mongoose.model<UserDocument>('User', UserSchema);

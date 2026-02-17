@@ -1,20 +1,20 @@
 import dotenv from 'dotenv';
 import * as tsledge from '../src/index';
-import User from './models/user';
+import {UserModel} from './models/user';
 import router from './routes';
-import UserGroup from './models/user-group';
+import {UserGroupModel} from './models/user-group';
 
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 const URI = process.env.MONGODB_URI as string;
-let fluentApi: tsledge.FluentAPIPath[] = [
+let fluentApi: tsledge.FluentAPIOption[] = [
   {
-    model: User,
+    model: UserModel,
     filters: ['username'],
   },
   {
-    model: UserGroup,
+    model: UserGroupModel,
   },
 ];
 export async function setup() {

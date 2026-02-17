@@ -1,11 +1,11 @@
 import express, { Request, Response } from 'express';
-import { AuthUser, AuthUserDocument, TokenBlocklist } from '../../models';
 import bcrypt from 'bcrypt';
 import { JWTCredentials, AuthUserPayload } from './types';
 import { encodeToBase64, JwtRefreshSecret, JwtSecret, validateString } from '../../utils';
 import jwt from 'jsonwebtoken';
 import { jwtRefreshRequired } from './validation';
 import mongoose from 'mongoose';
+import { AuthUserDocument, AuthUserModel, TokenBlocklistModel } from '../../models';
 
 const router = express.Router();
 
@@ -23,9 +23,9 @@ async function generateCredentials(auth: AuthUserDocument): Promise<JWTCredentia
   let blocked = undefined;
   do {
     jti = crypto.randomUUID();
-    blocked = await TokenBlocklist.findOne({ jti });
+    blocked = await TokenBlocklistModel.findOne({ jti });
   } while (blocked != undefined);
-  const user = await AuthUser.findOne({ identifier: auth.identifier }).lean();
+  const user = await AuthUserModel.findOne({ identifier: auth.identifier }).lean();
   if (!user) {
     return undefined;
   }
@@ -68,11 +68,11 @@ export async function authRegister(
     return res.sendStatus(FORBIDDEN);
   }
   identifier = identifier.toLowerCase();
-  let user = await AuthUser.findOne({ identifier });
+  let user = await AuthUserModel.findOne({ identifier });
   if (user) {
     return res.sendStatus(BAD_REQUEST);
   }
-  res.locals.authUser = new AuthUser({
+  res.locals.authUser = new AuthUserModel({
     identifier: identifier,
     secretHash: await bcrypt.hash(secret, 10),
   });
@@ -94,7 +94,7 @@ export async function authLogin(req: Request, res: Response & { locals: { creden
     return res.sendStatus(FORBIDDEN);
   }
   identifier = identifier.toLowerCase();
-  let user = await AuthUser.findOne({ identifier }).select('+secretHash');
+  let user = await AuthUserModel.findOne({ identifier }).select('+secretHash');
   if (!user || !user.secretHash) {
     return res.sendStatus(BAD_REQUEST);
   }
@@ -133,9 +133,9 @@ export async function authLogout(
     const decoded = jwt.decode(refreshToken) as any;
     const jti = decoded?.jti;
     if (jti) {
-      const existingBlock = await TokenBlocklist.findOne({ jti: jti });
+      const existingBlock = await TokenBlocklistModel.findOne({ jti: jti });
       if (!existingBlock) {
-        await new TokenBlocklist({ jti: jti }).save();
+        await new TokenBlocklistModel({ jti: jti }).save();
       }
     }
     let accessToken = validateString(req.body?.access_token);
@@ -143,9 +143,9 @@ export async function authLogout(
       const accessTokenDecoded = jwt.decode(accessToken) as any;
       let accessTokenJti = accessTokenDecoded?.jti;
       if (accessTokenJti) {
-        const existing = await TokenBlocklist.findOne({ jti: accessTokenJti });
+        const existing = await TokenBlocklistModel.findOne({ jti: accessTokenJti });
         if (!existing) {
-          await new TokenBlocklist({ jti: accessTokenJti }).save();
+          await new TokenBlocklistModel({ jti: accessTokenJti }).save();
         }
       }
     }
@@ -175,9 +175,9 @@ export async function authRefresh(
     const decoded = jwt.decode(refreshToken) as any;
     const jti = decoded?.jti;
     if (jti) {
-      const existingBlock = await TokenBlocklist.findOne({ jti: jti });
+      const existingBlock = await TokenBlocklistModel.findOne({ jti: jti });
       if (!existingBlock) {
-        await new TokenBlocklist({ jti: jti }).save();
+        await new TokenBlocklistModel({ jti: jti }).save();
       }
     }
     let accessToken = validateString(req.body?.access_token);
@@ -185,11 +185,11 @@ export async function authRefresh(
       const accessTokenDecoded = jwt.decode(accessToken) as any;
       let accessTokenJti = accessTokenDecoded?.jti;
       if (accessTokenJti) {
-        const existing = await TokenBlocklist.findOne({
+        const existing = await TokenBlocklistModel.findOne({
           jti: accessTokenJti,
         });
         if (!existing) {
-          await new TokenBlocklist({ jti: accessTokenJti }).save();
+          await new TokenBlocklistModel({ jti: accessTokenJti }).save();
         }
       }
     }
