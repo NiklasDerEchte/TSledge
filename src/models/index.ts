@@ -1,2 +1,2 @@
 export * from './auth-user';
-export * from './token-blocklist';
+export * from './auth-token-blocklist';

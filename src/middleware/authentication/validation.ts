@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthUserPayload } from './types';
 import { JwtRefreshSecret, JwtSecret } from '../../utils';
-import { AuthUserModel, TokenBlocklistModel } from '../../models';
+import { AuthUserModel, AuthTokenBlocklistModel } from '../../models';
 
 export interface TokenVerificationResult {
   isTokenValid: boolean;
@@ -60,7 +60,7 @@ export async function verifyToken(token: string, jwtSecret: string): Promise<Tok
       console.log('[WARN] JWT token without jti');
       return { isTokenValid: false, isTokenExpired: false, isUserBlocked: false, payload };
     }
-    const existingBlock = await TokenBlocklistModel.findOne({ jti: jti });
+    const existingBlock = await AuthTokenBlocklistModel.findOne({ jti: jti });
     if (existingBlock) {
       console.log('[WARN] JWT token is blocked');
       return { isTokenValid: false, isTokenExpired: false, isUserBlocked: false, payload };

@@ -4,8 +4,7 @@ import { JWTCredentials, AuthUserPayload } from './types';
 import { encodeToBase64, JwtRefreshSecret, JwtSecret, validateString } from '../../utils';
 import jwt from 'jsonwebtoken';
 import { jwtRefreshRequired } from './validation';
-import mongoose from 'mongoose';
-import { AuthUserDocument, AuthUserModel, TokenBlocklistModel } from '../../models';
+import { AuthUserDocument, AuthUserModel, AuthTokenBlocklistModel } from '../../models';
 
 const router = express.Router();
 
@@ -23,7 +22,7 @@ async function generateCredentials(auth: AuthUserDocument): Promise<JWTCredentia
   let blocked = undefined;
   do {
     jti = crypto.randomUUID();
-    blocked = await TokenBlocklistModel.findOne({ jti });
+    blocked = await AuthTokenBlocklistModel.findOne({ jti });
   } while (blocked != undefined);
   const user = await AuthUserModel.findOne({ identifier: auth.identifier }).lean();
   if (!user) {
@@ -133,9 +132,9 @@ export async function authLogout(
     const decoded = jwt.decode(refreshToken) as any;
     const jti = decoded?.jti;
     if (jti) {
-      const existingBlock = await TokenBlocklistModel.findOne({ jti: jti });
+      const existingBlock = await AuthTokenBlocklistModel.findOne({ jti: jti });
       if (!existingBlock) {
-        await new TokenBlocklistModel({ jti: jti }).save();
+        await new AuthTokenBlocklistModel({ jti: jti }).save();
       }
     }
     let accessToken = validateString(req.body?.access_token);
@@ -143,9 +142,9 @@ export async function authLogout(
       const accessTokenDecoded = jwt.decode(accessToken) as any;
       let accessTokenJti = accessTokenDecoded?.jti;
       if (accessTokenJti) {
-        const existing = await TokenBlocklistModel.findOne({ jti: accessTokenJti });
+        const existing = await AuthTokenBlocklistModel.findOne({ jti: accessTokenJti });
         if (!existing) {
-          await new TokenBlocklistModel({ jti: accessTokenJti }).save();
+          await new AuthTokenBlocklistModel({ jti: accessTokenJti }).save();
         }
       }
     }
@@ -175,9 +174,9 @@ export async function authRefresh(
     const decoded = jwt.decode(refreshToken) as any;
     const jti = decoded?.jti;
     if (jti) {
-      const existingBlock = await TokenBlocklistModel.findOne({ jti: jti });
+      const existingBlock = await AuthTokenBlocklistModel.findOne({ jti: jti });
       if (!existingBlock) {
-        await new TokenBlocklistModel({ jti: jti }).save();
+        await new AuthTokenBlocklistModel({ jti: jti }).save();
       }
     }
     let accessToken = validateString(req.body?.access_token);
@@ -185,11 +184,11 @@ export async function authRefresh(
       const accessTokenDecoded = jwt.decode(accessToken) as any;
       let accessTokenJti = accessTokenDecoded?.jti;
       if (accessTokenJti) {
-        const existing = await TokenBlocklistModel.findOne({
+        const existing = await AuthTokenBlocklistModel.findOne({
           jti: accessTokenJti,
         });
         if (!existing) {
-          await new TokenBlocklistModel({ jti: accessTokenJti }).save();
+          await new AuthTokenBlocklistModel({ jti: accessTokenJti }).save();
         }
       }
     }
