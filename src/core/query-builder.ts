@@ -118,8 +118,13 @@ export class QueryBuilder {
       if (schematype.options?.ref) {
         const refModelName = schematype.options.ref;
         try {
+          console.log("Generate Schema");
+          console.log(`[QueryBuilder] Resolving ref model '${refModelName}' for path '${fullPath}'`);
           const refModel = mongoose.model(refModelName);
+          console.log(Object.keys(mongoose.models));
+          console.log(`[QueryBuilder] RefModel '${refModel.modelName}' resolved for path '${fullPath}'`);
           let alias = schematype.options?.alias ?? refModel.collection.name;
+          console.log(`[QueryBuilder] Using alias '${alias}' for path '${fullPath}'`);
           this.join(new JoinRelation(fullPath, refModel, alias));
         } catch (err) {
           console.warn(

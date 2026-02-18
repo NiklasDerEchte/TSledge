@@ -14,6 +14,7 @@ tsconfig.json
 docs/
 npm-debug.log*
 .env
+*.tgz
 
 # Tests
 tests/

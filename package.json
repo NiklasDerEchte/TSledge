@@ -22,7 +22,8 @@
     "build": "node esbuild.js && tsc --emitDeclarationOnly",
     "dev": "concurrently \"npm run esbuild:build:watch\" \"npm run esbuild:dev:watch\"",
     "repl": "tsx ./scripts/repl.ts",
-    "npmjs": "npm run build && npm publish"
+    "npmjs": "npm run build && npm publish",
+    "package": "npm run build && npm pack"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -30,8 +31,10 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.1.5",
     "multer": "^2.0.2"
+  },
+  "peerDependencies": {
+    "mongoose": "^9.1.5"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

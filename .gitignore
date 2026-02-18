@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .env
+*.tgz
 
 # Editor directories and files
 .idea
