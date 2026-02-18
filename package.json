@@ -19,7 +19,7 @@
   "scripts": {
     "esbuild:build:watch": "node ./esbuild.js --watch",
     "esbuild:dev:watch": "node --watch ./dist/tests/main.js",
-    "build": "node esbuild.js && tsc --emitDeclarationOnly",
+    "build": "npm i && node esbuild.js && tsc --emitDeclarationOnly",
     "dev": "concurrently \"npm run esbuild:build:watch\" \"npm run esbuild:dev:watch\"",
     "repl": "tsx ./scripts/repl.ts",
     "npmjs": "npm run build && npm publish",
