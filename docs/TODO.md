@@ -1,5 +1,7 @@
 ## Ideen
+- Die FluentAPIOptions auch "select" felder für das jeweilige Model gesetzt bekommen können. Sonst kann man dieses "select" nur individuell über den QueryBuilder setzen
 - Eine Klasse von der man erben kann und dann sein "Model" definieren, ein constructor soll automatisch die public attributes im Editor anzeigen zum übergeben
+- SocketIO handling
 
 ## Kern Thema:
 Überarbeitung und Erweiterung der API Endpunkte für Ressourcen.
