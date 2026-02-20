@@ -1,10 +1,5 @@
-import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import { DefaultResponseBody, KeysEnum, QueryBuilder } from '../core/index';
-
-export interface FluentRequestParams extends Record<string, string> {
-  collection: string;
-}
 
 export interface FluentRequestBody {} // GET requests do not have body
 
@@ -31,15 +26,8 @@ export const fluentRequestQueryAttributes: KeysEnum<FluentRequestQuery> = {
   excluded: '',
 };
 
-export interface FluentAPIOption<T = any> {
-  // Required: Model
-  model: mongoose.Model<T>;
-  // Optional: Query filters, fields in the model by which you can filter
-  filters?: string[];
-}
-
 export type FluentExpressRequest = Request<
-  FluentRequestParams,
+  any,
   DefaultResponseBody,
   FluentRequestBody,
   FluentRequestQuery

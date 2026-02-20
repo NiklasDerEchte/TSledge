@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import {
   FluentRequestQuery,
-  FluentAPIOption,
   fluentRequestQueryAttributes,
   FluentMiddleware,
   FluentExecParams,
@@ -19,38 +18,39 @@ interface FluentPatternParameter {
 }
 
 export class FluentPatternHandler {
+  /**
+   * Singleton instance of FluentPatternHandler. The class is designed
+   */
   private static _singleton: FluentPatternHandler;
-  private _options: FluentAPIOption[];
+  /**
+   * Array of middleware functions to be executed before the main query execution in the exec method. Each function receives the execution parameters and can modify them as needed.
+   */
   private _execMiddlewareFunctions: FluentMiddleware[] = [];
 
   /**
-   * Constructor for QueryPatternExecutor.
-   * @param options - Array of query pattern options for filtering.
+   * Constructor for FluentPatternHandler.
+   * @param execMiddleware - Optional array of middleware functions to be executed before the main query execution in the exec method.
    */
-  constructor(options: FluentAPIOption[] = [], execMiddleware: FluentMiddleware[] = []) {
+  constructor(execMiddleware: FluentMiddleware[] = []) {
     if (FluentPatternHandler._singleton) {
       throw new Error(
         'FluentPatternHandler is a singleton class. Use FluentPatternHandler.getInstance() to access the instance.'
       );
     }
-    this._options = options;
     this._execMiddlewareFunctions = execMiddleware;
     FluentPatternHandler._singleton = this;
   }
 
   /**
    * Initializes the singleton instance of FluentPatternHandler with the provided options.
-   * @param options - Array of query pattern options for filtering.
+   * @param execMiddleware - Optional array of middleware functions to be executed before the main query execution in the exec method.
    * @returns Singleton instance of FluentPatternHandler.
    */
-  public static init(
-    options: FluentAPIOption[] = [],
-    execMiddleware: FluentMiddleware[] = []
-  ): FluentPatternHandler {
+  public static init(execMiddleware: FluentMiddleware[] = []): FluentPatternHandler {
     if (FluentPatternHandler._singleton != undefined) {
       throw new Error('FluentPatternHandler is already initialized');
     }
-    FluentPatternHandler._singleton = new FluentPatternHandler(options, execMiddleware);
+    FluentPatternHandler._singleton = new FluentPatternHandler(execMiddleware);
     return FluentPatternHandler._singleton;
   }
 
@@ -93,7 +93,7 @@ export class FluentPatternHandler {
         excluded = JSON.parse(excludedJSON);
         if (!Array.isArray(excluded)) throw new Error('Excluded must be an array');
       } catch (error) {
-        console.warn('[QueryPatternExecutor] Invalid excluded parameter:', error);
+        console.warn('[FluentPatternHandler] Invalid excluded parameter:', error);
       }
     }
 
@@ -103,7 +103,7 @@ export class FluentPatternHandler {
         ids = JSON.parse(idsJSON);
         if (!Array.isArray(ids)) throw new Error('Ids must be an array');
       } catch (error) {
-        console.warn('[QueryPatternExecutor] Invalid ids parameter:', error);
+        console.warn('[FluentPatternHandler] Invalid ids parameter:', error);
       }
     }
 
@@ -153,20 +153,19 @@ export class FluentPatternHandler {
   }
 
   /**
-   * Retrieves filter fields for the given model from the options configuration.
+   * Generates filter fields for the given Mongoose model based on schema options.
    * @param model - The Mongoose model.
    * @returns Array of filter fields.
    */
   private _getFilterFieldsForModel(model: mongoose.Model<any>): string[] {
-    for (const option of this._options) {
-      if (option.model.collection.name === model.collection.name) {
-        if (option.filters) {
-          return option.filters;
-        }
-        return [];
+    let filterFields: string[] = [];
+    let schema: mongoose.Schema = model.schema;
+    schema.eachPath((path: string, type: mongoose.SchemaType) => {
+      if (type?.options?.filter == true) {
+        filterFields.push(path);
       }
-    }
-    return [];
+    });
+    return filterFields;
   }
 
   /**
@@ -187,11 +186,11 @@ export class FluentPatternHandler {
     };
   }
 
-/**
- * Executes the query builder with applied filters and returns the result.
- * @param params Execution parameters including the query builder and request query.
- * @returns 
- */
+  /**
+   * Executes the query builder with applied filters and returns the result.
+   * @param params Execution parameters including the query builder and request query.
+   * @returns
+   */
   public async exec<T = any>(params: FluentExecParams): PromiseDefaultCodec {
     try {
       if (this._execMiddlewareFunctions && this._execMiddlewareFunctions.length > 0) {
@@ -204,7 +203,7 @@ export class FluentPatternHandler {
       const execConfig = this._buildExecutionConfig(queryParams);
       return await params.queryBuilder.exec(execConfig);
     } catch (err) {
-      console.error('[ERROR - QueryPatternExecutor]', err);
+      console.error('[ERROR - FluentPatternHandler]', err);
       return new Codec<DefaultResponseBody>({ data: [], meta: { total: 0 } }, 500);
     }
   }
