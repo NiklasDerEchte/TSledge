@@ -20,8 +20,9 @@
     "skipLibCheck": true
   },
   "include": [
-    "src/**/*"
-, "scripts/repl.ts"  ],
+    "src/**/*", 
+    "scripts/repl.ts"
+  ],
   "exclude": [
     "scripts",
     "node_modules",
