@@ -1,6 +1,4 @@
 ## Ideen
-- Die FluentAPIOptions auch "select" felder für das jeweilige Model gesetzt bekommen können. Sonst kann man dieses "select" nur individuell über den QueryBuilder setzen
-  - Eventuell "FilterFields" den QueryBuilderConfig hinzufügen und dann können die FluentAPIOptions eine sammlung aus QueryBuilderConfigs sein. ergibt das sinn? Glaube schon, entweder man definiert Standart configs für die Models oder/und man fügt Individuelle Konfigurationen hinzu in der Route
 - Eine Klasse von der man erben kann und dann sein "Model" definieren, ein constructor soll automatisch die public attributes im Editor anzeigen zum übergeben
 - SocketIO handling
 
