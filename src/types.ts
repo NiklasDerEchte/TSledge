@@ -1,15 +1,9 @@
-import type { HydratedDocument } from 'mongoose';
-
 declare module 'mongoose' {
   /**
    * Extend SchemaTypeOptions to include the custom filter property.
    * TypeScript will automatically merge this with the existing interface.
    */
-  interface SchemaTypeOptions<
-    T,
-    EnforcedDocType = any,
-    THydratedDocumentType = HydratedDocument<EnforcedDocType>
-  > {
+  interface SchemaTypeOptions<T> {
     /**
      * If set to `true`, this field will be included in fluent pattern handler filtering.
      *
