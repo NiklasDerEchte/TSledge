@@ -1,3 +1,5 @@
+/// <reference path="./mongoose.d.ts" />
+
 export * from './db/index';
 export * from './middleware/index';
 export * from './fluent-interface/index';
