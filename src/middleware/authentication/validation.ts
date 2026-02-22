@@ -17,42 +17,45 @@ const UNAUTHORIZED = 401; // refresh the tokens
 /**
  * Express middleware to require a valid JWT token for access. Checks the token against the blocklist and user status.
  * Adding user and access token to ``res.locals.user`` and ``res.locals.token``
- * @param req 
- * @param res 
- * @param next 
- * @returns 
+ * @param req
+ * @param res
+ * @param next
+ * @returns
  */
 export async function jwtRequired(
   req: Request,
   res: Response & { locals: { user: AuthUserPayload; token: string } },
   next: any
-) {
-  return validateJwt(req, res, next, JwtSecret);
+): Promise<void> {
+  await validateJwt(req, res, next, JwtSecret);
 }
 
 /**
  * Express middleware to require a valid refresh JWT token for access. Checks the token against the blocklist and user status.
  * Adding user and access token to ``res.locals.user`` and ``res.locals.token``
- * @param req 
- * @param res 
- * @param next 
- * @returns 
+ * @param req
+ * @param res
+ * @param next
+ * @returns
  */
 export async function jwtRefreshRequired(
   req: Request,
   res: Response & { locals: { user: AuthUserPayload; token: string } },
   next: any
-) {
-  return validateJwt(req, res, next, JwtRefreshSecret);
+): Promise<void> {
+  await validateJwt(req, res, next, JwtRefreshSecret);
 }
 
 /**
  * Verifies a JWT token and checks for blocklist and user status.
- * @param token 
- * @param jwtSecret 
+ * @param token
+ * @param jwtSecret
  * @returns An object containing validity, expiration status, and payload.
  */
-export async function verifyToken(token: string, jwtSecret: string): Promise<TokenVerificationResult> {
+export async function verifyToken(
+  token: string,
+  jwtSecret: string
+): Promise<TokenVerificationResult> {
   try {
     const payload = jwt.verify(token, jwtSecret, { ignoreExpiration: true }) as AuthUserPayload;
     const jti = payload?.jti;
@@ -68,7 +71,7 @@ export async function verifyToken(token: string, jwtSecret: string): Promise<Tok
     const identifier = payload.identifier;
     if (identifier) {
       const user = await AuthUserModel.findOne({ identifier });
-      if(!user) {
+      if (!user) {
         console.log('[WARN] JWT token for non-existing user');
         return { isTokenValid: false, isTokenExpired: false, isUserBlocked: false, payload };
       }
@@ -106,13 +109,26 @@ export async function verifyToken(token: string, jwtSecret: string): Promise<Tok
  * Helper function to validate JWT tokens in Express middleware, used by both jwtRequired and jwtRefreshRequired.
  * Checks the token against the blocklist and user status, and passes the decoded payload in ``res.locals.user`` if valid.
  * ``res.locals.token`` is set to the raw token.
- * @param req 
- * @param res 
- * @param next 
- * @param jwtSecret 
- * @returns 
+ * @param req
+ * @param res
+ * @param next
+ * @param jwtSecret
+ * @returns
  */
-async function validateJwt(req: Request, res: Response & { locals: { user: AuthUserPayload, token: string } }, next: any, jwtSecret: string) {
+async function validateJwt(
+  req: Request,
+  res: Response & { locals: { user: AuthUserPayload; token: string } },
+  next: any,
+  jwtSecret: string
+): Promise<
+  | (Response<any, Record<string, any>> & {
+      locals: {
+        user: AuthUserPayload;
+        token: string;
+      };
+    })
+  | undefined
+> {
   const authHeader = req.headers['authorization'];
   if (!authHeader) return res.sendStatus(FORBIDDEN);
   const token = authHeader.split(' ')[1];
@@ -148,7 +164,8 @@ export async function socketToken(_socket: any, _next: any) {
   }
   try {
     const verificationResult = await verifyToken(token, JwtSecret);
-    const isValidChar = verificationResult.isTokenValid && !verificationResult.isTokenExpired ? '🟢' : '🔴';
+    const isValidChar =
+      verificationResult.isTokenValid && !verificationResult.isTokenExpired ? '🟢' : '🔴';
     console.log(`${isValidChar} Socket verification result: ${JSON.stringify(verificationResult)}`);
     if (!verificationResult.isTokenValid) {
       if (verificationResult.isTokenExpired) {

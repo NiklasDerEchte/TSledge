@@ -1,5 +1,5 @@
 import express from 'express';
-import { FluentExpressRequest, FluentExpressResponse, FluentPatternHandler, QueryBuilder } from '../src';
+import { FluentExpressRequest, FluentExpressResponse, FluentPatternHandler, jwtRequired, QueryBuilder } from '../src';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -7,6 +7,7 @@ const router = express.Router();
 // collection is the route of collectionOptions
 router.get(
   '/:collection',
+  jwtRequired,
   async (
     req: FluentExpressRequest,
     res: FluentExpressResponse
