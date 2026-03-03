@@ -11,7 +11,6 @@ import {
 
 const router = express.Router();
 
-// TODO Testen und wie kann ich hier custom User daten injecten?
 router.post(
   '/register',
   authRegister,

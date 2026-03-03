@@ -5,9 +5,21 @@ import { JwtRefreshSecret, JwtSecret } from '../../utils';
 import { AuthUserModel, AuthTokenBlocklistModel } from '../../models';
 
 export interface TokenVerificationResult {
+  /**
+   * Indicates if the token is valid (signature is correct, not blocked, and user is not blocked).
+   */
   isTokenValid: boolean;
+  /**
+   * Indicates if the token is expired.
+   */
   isTokenExpired: boolean;
+  /**
+   * Indicates if the user associated with the token is blocked.
+   */
   isUserBlocked: boolean;
+  /**
+   * The decoded payload from the JWT token, which should contain user information.
+   */
   payload: AuthUserPayload | any;
 }
 
