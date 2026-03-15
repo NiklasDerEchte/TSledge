@@ -1,0 +1,19 @@
+DEBUG=true
+PORT=5555
+
+DB:
+  MONGO:
+    MONGODB_URI=mongodb://user:pass@localhost:27017/test
+
+  SQL:
+    SQL_URI=sql://user:pass@localhost:3000/test
+
+EMAIL:
+  EMAIL_HOST=smtp.example.com
+  EMAIL_USER=mailer@example.com
+  EMAIL_PASSWORD=Secret
+  SMTP_PASSWORD=Secret
+
+JWT:
+  JWT_REFRESH_SECRET=refresh_secret
+  JWT_SECRET=secret

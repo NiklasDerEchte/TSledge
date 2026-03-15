@@ -61,15 +61,17 @@ export async function authRegister(
   req: Request,
   res: Response & { locals: { authUser: AuthUserDocument } },
   next: any
-) {
+): Promise<void> {
   let { identifier = undefined, secret = undefined } = req.body || {};
   if (!identifier || !secret) {
-    return res.sendStatus(FORBIDDEN);
+    res.sendStatus(FORBIDDEN);
+    return;
   }
   identifier = identifier.toLowerCase();
   let user = await AuthUserModel.findOne({ identifier });
   if (user) {
-    return res.sendStatus(BAD_REQUEST);
+    res.sendStatus(BAD_REQUEST);
+    return;
   }
   res.locals.authUser = new AuthUserModel({
     identifier: identifier,
@@ -87,26 +89,35 @@ export async function authRegister(
  * @param next 
  * @returns 
  */
-export async function authLogin(req: Request, res: Response & { locals: { credentials: JWTCredentials } }, next: any) {
+export async function authLogin(
+  req: Request,
+  res: Response & { locals: { credentials: JWTCredentials } },
+  next: any
+): Promise<void> {
   let { identifier = undefined, secret = undefined } = req.body || {};
   if (!identifier || !secret) {
-    return res.sendStatus(FORBIDDEN);
+    res.sendStatus(FORBIDDEN);
+    return;
   }
   identifier = identifier.toLowerCase();
   let user = await AuthUserModel.findOne({ identifier }).select('+secretHash');
   if (!user || !user.secretHash) {
-    return res.sendStatus(BAD_REQUEST);
+    res.sendStatus(BAD_REQUEST);
+    return;
   }
   if (user.blockedSince) {
-    return res.sendStatus(FORBIDDEN);
+    res.sendStatus(FORBIDDEN);
+    return;
   }
   let isMatch = await bcrypt.compare(secret, user.secretHash);
   if (!isMatch) {
-    return res.sendStatus(BAD_REQUEST);
+    res.sendStatus(BAD_REQUEST);
+    return;
   }
   let credentials = await generateCredentials(user);
   if (!credentials) {
-    return res.sendStatus(BAD_REQUEST);
+    res.sendStatus(BAD_REQUEST);
+    return;
   }
   res.locals.credentials = credentials;
   next();
@@ -123,11 +134,12 @@ export async function authLogout(
   req: Request,
   res: Response & { locals: { user: AuthUserPayload; token: string } },
   next: any
-) {
+): Promise<void> {
   await jwtRefreshRequired(req, res, async () => {
     const refreshToken = res.locals.token;
     if (!refreshToken) {
-      return res.sendStatus(BAD_REQUEST);
+      res.sendStatus(BAD_REQUEST);
+      return;
     }
     const decoded = jwt.decode(refreshToken) as any;
     const jti = decoded?.jti;
@@ -164,11 +176,12 @@ export async function authRefresh(
   req: Request,
   res: Response & { locals: { user: AuthUserPayload; token: string; credentials: JWTCredentials } },
   next: any
-) {
+): Promise<void> {
   await jwtRefreshRequired(req, res, async () => {});
   const refreshToken = res.locals.token;
   if (!refreshToken) {
-    return res.sendStatus(BAD_REQUEST);
+    res.sendStatus(BAD_REQUEST);
+    return;
   }
   try {
     const decoded = jwt.decode(refreshToken) as any;
@@ -195,13 +208,15 @@ export async function authRefresh(
     const payload = jwt.verify(refreshToken, JwtRefreshSecret) as any;
     let credentials = await generateCredentials(payload);
     if (!credentials) {
-      return res.sendStatus(BAD_REQUEST);
+      res.sendStatus(BAD_REQUEST);
+      return;
     }
     res.locals.credentials = credentials;
     next();
   } catch (err) {
     console.log('[WARN] refreshing JWT:', err);
-    return res.sendStatus(BAD_REQUEST);
+    res.sendStatus(BAD_REQUEST);
+    return;
   }
 }
 

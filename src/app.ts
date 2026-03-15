@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import * as core from 'express-serve-static-core';
-import { errorLogger, requestLogger } from './middleware';
+import { errorLogger, requestLogger } from './middleware/index';
 
 /**
  * Creates and configures an Express application.

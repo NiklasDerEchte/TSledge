@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { getCurrentDateString } from '../utils';
+import { getCurrentDateString } from '../utils/index';
 
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   res.on('finish', () => {
