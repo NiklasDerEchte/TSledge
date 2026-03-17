@@ -27,7 +27,8 @@ export interface JWTCredentials {
    */
   refreshToken: string;
   /**
-   * Encoded string of AuthUserModel in base64 format
+   * Encoded string of AuthUserModel in base64 format.
+   * Use encodeToBase64 to encode your own user document to a string and decodeFromBase64 to decode it back to an object.
    */
   appUser: string;
 }
