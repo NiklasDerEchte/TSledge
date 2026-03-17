@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 export interface User {
-  ofUserGroup: mongoose.Schema.Types.ObjectId;
+  ofUserGroup: mongoose.Types.ObjectId;
   username: string;
   email: string;
   secretHash: string;
