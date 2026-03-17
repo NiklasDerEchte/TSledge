@@ -2,7 +2,7 @@
   "author": "Niklas Wockenfuß",
   "homepage": "https://niklaswockenfuss.de/",
   "name": "tsledge",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "license": "MIT",
   "description": "My playground and some helpful tools for web development ",
   "main": "dist/index.js",

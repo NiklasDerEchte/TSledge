@@ -1,12 +1,33 @@
 export interface AuthUserPayload {
-  identifier: string; // identifier is required
-  jti: string; // jwt id, is required
-  exp?: number; // jwt expires, is set by express in sign()
-  iat?: number; // jwt issued at, is set by express in sign()
+  /**
+   * Identifier is required
+   */
+  identifier: string;
+  /**
+   * JWT id, is required
+   */
+  jti: string;
+  /**
+   * JWT expires, is set by express in sign()
+   */
+  exp?: number;
+  /**
+   * JWT issued at, is set by express in sign()
+   */
+  iat?: number;
 }
 
 export interface JWTCredentials {
+  /**
+   * JWT Access Token, expires in 15 minutes, signed with JwtSecret
+   */
   accessToken: string;
+  /**
+   * JWT Refresh Token, expires in 7 days, signed with JwtRefreshSecret
+   */
   refreshToken: string;
-  appUser: any;
+  /**
+   * Encoded string of AuthUserModel in base64 format
+   */
+  appUser: string;
 }
