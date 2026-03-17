@@ -83,15 +83,15 @@ export async function authRegister(
 
 /**
  * Handles user login by validating credentials and generating JWT tokens.
- * Passes data in ``res.locals.credentials`` for the next middleware to use.
+ * Passes data in ``res.locals.credentials`` and ``res.locals.authUser`` for the next middleware to use.
  * @param req 
- * @param res 
+ * @param res Response & { locals: { credentials: JWTCredentials; authUser: AuthUserDocument } }
  * @param next 
  * @returns 
  */
 export async function authLogin(
   req: Request,
-  res: Response & { locals: { credentials: JWTCredentials } },
+  res: Response & { locals: { credentials: JWTCredentials; authUser: AuthUserDocument } },
   next: any
 ): Promise<void> {
   let { identifier = undefined, secret = undefined } = req.body || {};
@@ -120,6 +120,7 @@ export async function authLogin(
     return;
   }
   res.locals.credentials = credentials;
+  res.locals.authUser = user;
   next();
 }
 
@@ -127,15 +128,23 @@ export async function authLogin(
  * Handles user logout by invalidating the provided refresh token and optionally the access token.
  * JWTRefresh Token is required
  * @param req 
- * @param res Response & { locals: { user: AuthUserPayload; token: string } }
+ * @param res Response & { locals: { authUserPayload: AuthUserPayload; token: string; authUser: AuthUserDocument } }
  * @param next 
  */
 export async function authLogout(
   req: Request,
-  res: Response & { locals: { user: AuthUserPayload; token: string } },
+  res: Response & { locals: { authUserPayload: AuthUserPayload; token: string; authUser: AuthUserDocument } },
   next: any
 ): Promise<void> {
   await jwtRefreshRequired(req, res, async () => {
+    let authUserPayload: AuthUserPayload = res.locals.authUserPayload;
+    let user = await AuthUserModel.findOne({ identifier: authUserPayload.identifier }).select(
+      '+secretHash'
+    );
+    if (!user || !user.secretHash) {
+      res.sendStatus(BAD_REQUEST);
+      return;
+    }
     const refreshToken = res.locals.token;
     if (!refreshToken) {
       res.sendStatus(BAD_REQUEST);
@@ -160,64 +169,82 @@ export async function authLogout(
         }
       }
     }
+    res.locals.authUser = user;
     next();
   });
 }
 
 /**
  * Handles refreshing JWT tokens by validating the provided refresh token and generating new credentials.
- * Passes new credentials in ``res.locals.credentials`` for the next middleware to use.
+ * Passes new credentials in ``res.locals.credentials`` and ``res.locals.authUser`` for the next middleware to use.
  * @param req 
- * @param res Response & { locals: { user: AuthUserPayload; token: string; credentials: JWTCredentials } }
+ * @param res Response & { locals: { authUserPayload: AuthUserPayload; token: string; credentials: JWTCredentials; authUser: AuthUserDocument } }
  * @param next 
  * @returns 
  */
 export async function authRefresh(
   req: Request,
-  res: Response & { locals: { user: AuthUserPayload; token: string; credentials: JWTCredentials } },
+  res: Response & {
+    locals: {
+      authUserPayload: AuthUserPayload;
+      token: string;
+      credentials: JWTCredentials;
+      authUser: AuthUserDocument;
+    };
+  },
   next: any
 ): Promise<void> {
-  await jwtRefreshRequired(req, res, async () => {});
-  const refreshToken = res.locals.token;
-  if (!refreshToken) {
-    res.sendStatus(BAD_REQUEST);
-    return;
-  }
-  try {
-    const decoded = jwt.decode(refreshToken) as any;
-    const jti = decoded?.jti;
-    if (jti) {
-      const existingBlock = await AuthTokenBlocklistModel.findOne({ jti: jti });
-      if (!existingBlock) {
-        await new AuthTokenBlocklistModel({ jti: jti }).save();
-      }
-    }
-    let accessToken = validateString(req.body?.access_token);
-    if (accessToken) {
-      const accessTokenDecoded = jwt.decode(accessToken) as any;
-      let accessTokenJti = accessTokenDecoded?.jti;
-      if (accessTokenJti) {
-        const existing = await AuthTokenBlocklistModel.findOne({
-          jti: accessTokenJti,
-        });
-        if (!existing) {
-          await new AuthTokenBlocklistModel({ jti: accessTokenJti }).save();
-        }
-      }
-    }
-    const payload = jwt.verify(refreshToken, JwtRefreshSecret) as any;
-    let credentials = await generateCredentials(payload);
-    if (!credentials) {
+  await jwtRefreshRequired(req, res, async () => {
+    let authUserPayload: AuthUserPayload = res.locals.authUserPayload;
+    let user = await AuthUserModel.findOne({ identifier: authUserPayload.identifier }).select(
+      '+secretHash'
+    );
+    if (!user || !user.secretHash) {
       res.sendStatus(BAD_REQUEST);
       return;
     }
-    res.locals.credentials = credentials;
-    next();
-  } catch (err) {
-    console.log('[WARN] refreshing JWT:', err);
-    res.sendStatus(BAD_REQUEST);
-    return;
-  }
+    const refreshToken = res.locals.token;
+    if (!refreshToken) {
+      res.sendStatus(BAD_REQUEST);
+      return;
+    }
+    try {
+      const decoded = jwt.decode(refreshToken) as any;
+      const jti = decoded?.jti;
+      if (jti) {
+        const existingBlock = await AuthTokenBlocklistModel.findOne({ jti: jti });
+        if (!existingBlock) {
+          await new AuthTokenBlocklistModel({ jti: jti }).save();
+        }
+      }
+      let accessToken = validateString(req.body?.access_token);
+      if (accessToken) {
+        const accessTokenDecoded = jwt.decode(accessToken) as any;
+        let accessTokenJti = accessTokenDecoded?.jti;
+        if (accessTokenJti) {
+          const existing = await AuthTokenBlocklistModel.findOne({
+            jti: accessTokenJti,
+          });
+          if (!existing) {
+            await new AuthTokenBlocklistModel({ jti: accessTokenJti }).save();
+          }
+        }
+      }
+      const payload = jwt.verify(refreshToken, JwtRefreshSecret) as any;
+      let credentials = await generateCredentials(payload);
+      if (!credentials) {
+        res.sendStatus(BAD_REQUEST);
+        return;
+      }
+      res.locals.authUser = user;
+      res.locals.credentials = credentials;
+      next();
+    } catch (err) {
+      console.log('[WARN] refreshing JWT:', err);
+      res.sendStatus(BAD_REQUEST);
+      return;
+    }
+  });
 }
 
 export default router;
