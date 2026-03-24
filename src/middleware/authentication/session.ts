@@ -52,7 +52,7 @@ async function generateCredentials(auth: AuthUserDocument): Promise<JWTCredentia
 /**
  * Handles user registration by validating input and creating a new user with a hashed password.
  * Passes the new user without saving in ``res.locals.authUser`` for the next middleware to use.
- * @param req 
+ * @param req Request & { body: { identifier: string; secret: string } }
  * @param res Response & { locals: { authUser: AuthUserDocument } }
  * @param next 
  * @returns 
@@ -84,7 +84,7 @@ export async function authRegister(
 /**
  * Handles user login by validating credentials and generating JWT tokens.
  * Passes data in ``res.locals.credentials`` and ``res.locals.authUser`` for the next middleware to use.
- * @param req 
+ * @param req Request & { body: { identifier: string; secret: string } }
  * @param res Response & { locals: { credentials: JWTCredentials; authUser: AuthUserDocument } }
  * @param next 
  * @returns 
