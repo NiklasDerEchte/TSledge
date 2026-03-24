@@ -1,6 +1,9 @@
 ## Ideen
 - Eine Klasse von der man erben kann und dann sein "Model" definieren, ein constructor soll automatisch die public attributes im Editor anzeigen zum übergeben
 - SocketIO handling
+- Irgendwie kann man das repl script unter `scripts/repl.ts` an Projekte weiterreichen wenn die TSledge installieren.
+  - In der `package.json` wurde dazu eine `bin` option erstellt
+  - Ich glaube ich brauche noch irgend ein Shebang wie `#!/usr/bin/env node` in der `scripts/repl.ts`. Bin aber nicht sicher
 
 ## Kern Thema:
 Überarbeitung und Erweiterung der API Endpunkte für Ressourcen.

@@ -194,9 +194,9 @@ export class FluentPatternHandler {
   public async exec<T = any>(params: FluentExecParams): PromiseDefaultCodec {
     try {
       if (this._execMiddlewareFunctions && this._execMiddlewareFunctions.length > 0) {
-        this._execMiddlewareFunctions.forEach((func: FluentMiddleware) => {
-          func(params);
-        });
+        for (const func of this._execMiddlewareFunctions) {
+          await func(params);
+        }
       }
       const queryParams = this._parseFluentRequestQuery(params.req.query as FluentRequestQuery);
       this._applyParameters(params.queryBuilder, queryParams);
