@@ -3,7 +3,7 @@ import * as esbuild from 'esbuild';
 const isDev = process.argv.includes('--watch');
 
 const config = {
-  entryPoints: ['./src/index.ts', './scripts/repl.ts'], // Your entry point
+  entryPoints: ['./src/index.ts', './bin/repl.ts'], // Your entry point
   bundle: true, // IMPORTANT: Allows imports without extensions, bundles everything into one file
   platform: 'node', // Optimized for Node.js or Deno
   format: 'esm', // Output as ES modules

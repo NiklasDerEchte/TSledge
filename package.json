@@ -34,7 +34,7 @@
     "esbuild:build:watch": "node ./esbuild.js --watch",
     "esbuild:dev:watch": "node --enable-source-maps --watch ./dist/tests/main.js",
     "dev:watch": "npm run esbuild:build && concurrently \"npm run esbuild:build:watch\" \"npm run esbuild:dev:watch\"",
-    "repl": "tsx ./scripts/repl.ts",
+    "repl": "tsx ./bin/repl.ts",
     "npmjs": "npm run esbuild:build && npm publish",
     "package": "npm run esbuild:build && npm pack",
     "typedoc:build:api": "typedoc --options typedoc.json",
