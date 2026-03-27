@@ -17,7 +17,7 @@
   "type": "module",
   "types": "dist/index.d.ts",
   "bin": {
-    "repl": "./dist/scripts/repls.js"
+    "repl": "dist/bin/repl.js"
   },
   "files": [
     "dist/**/*",
@@ -28,13 +28,20 @@
     "node": ">=23.0.0"
   },
   "scripts": {
+    "esbuild:build": "npm i && node esbuild.js && tsc --emitDeclarationOnly",
+    "esbuild:dev": "node --enable-source-maps ./dist/tests/main.js",
+    "dev": "npm run esbuild:build && npm run esbuild:dev",
     "esbuild:build:watch": "node ./esbuild.js --watch",
     "esbuild:dev:watch": "node --enable-source-maps --watch ./dist/tests/main.js",
-    "build": "npm i && node esbuild.js && tsc --emitDeclarationOnly",
-    "dev": "concurrently \"npm run esbuild:build:watch\" \"npm run esbuild:dev:watch\"",
+    "dev:watch": "npm run esbuild:build && concurrently \"npm run esbuild:build:watch\" \"npm run esbuild:dev:watch\"",
     "repl": "tsx ./scripts/repl.ts",
-    "npmjs": "npm run build && npm publish",
-    "package": "npm run build && npm pack"
+    "npmjs": "npm run esbuild:build && npm publish",
+    "package": "npm run esbuild:build && npm pack",
+    "typedoc:build:api": "typedoc --options typedoc.json",
+    "vitepress:build": "vitepress build docs",
+    "docs:build": "npm run typedoc:build:api && npm run vitepress:build",
+    "vitepress:watch": "vitepress dev docs",
+    "docs:watch": "npm run typedoc:build:api && npm run vitepress:watch"
   },
   "dependencies": {
     "axios": "^1.13.6",
@@ -60,6 +67,10 @@
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitepress": "^1.6.4",
+    "vite-plugin-node-polyfills": "^0.24.0",
+    "typedoc": "^0.28.15",
+    "typedoc-plugin-markdown": "^4.9.0"
   }
 }

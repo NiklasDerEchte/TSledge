@@ -21,10 +21,10 @@
   },
   "include": [
     "src/**/*", 
-    "scripts/repl.ts"
+    "bin/repl.ts"
   ],
   "exclude": [
-    "scripts",
+    "bin",
     "node_modules",
     "**/*.spec.ts"
   ]
