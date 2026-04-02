@@ -65,7 +65,7 @@ export function mergeObjects<T = any>(input: any, target: any, prefix: string | 
  * @param [delimiter=','] 
  * @returns 
  */
-export function parseList(list: any, delimiter = ',') {
+export function parseList(list: any, delimiter = ','): string[] {
   if (!list) return [];
   if (Array.isArray(list)) return list.map((s: any) => String(s).trim()).filter(Boolean);
   if (typeof list === 'string') {
@@ -137,4 +137,38 @@ export function clamp(value: any, from: number = 0, to: number = 1): number {
   }
   if (isNaN(value)) return from;
   return Math.min(Math.max(value, from), to);
+}
+
+/**
+ * Parses a value into a boolean
+ * @param value The value to parse.
+ * @returns The parsed boolean
+ */
+export function parseBoolean(value: any): boolean {
+  if (value === undefined || value === null) return false;
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsedValue = value.trim().toLowerCase();
+    if (parsedValue === 'true' || parsedValue === '1' || parsedValue == 'yes') return true;
+    return false;
+  }
+
+  if (typeof value === 'object') {
+    if (value instanceof Boolean) {
+      return value.valueOf();
+    }
+    return false;
+  }
+
+  if (typeof value === 'number') {
+    if (value > 0) return true;
+  }
+  try {
+    return Boolean(value.trim().toLowerCase());
+  } catch {}
+  return false;
 }
