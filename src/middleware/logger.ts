@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { getCurrentDateString } from '../utils/index';
+import { getCurrentDateString } from 'tsledge-core-tests';
 
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   res.on('finish', () => {

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
-import { Codec, DefaultResponseBody, JoinRelation, PromiseDefaultCodec, QueryBuilderConfig } from './types';
+import { JoinRelation, QueryBuilderConfig } from './types';
+import { Codec, DefaultResponseBody, PromiseDefaultCodec } from 'tsledge-core-tests';
 
 export class QueryBuilder {
   private _config: QueryBuilderConfig;
