@@ -1,11 +1,10 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import { JWTCredentials, AuthUserPayload } from './types';
 import { JwtRefreshSecret, JwtSecret } from '../../utils';
 import jwt from 'jsonwebtoken';
 import { jwtRefreshRequired } from './validation';
 import { AuthUserDocument, AuthUserModel, AuthTokenBlocklistModel } from '../../models';
-import { encodeToBase64, validateString } from 'tsledge-core';
+import { AuthUserPayload, encodeToBase64, JWTCredentials, validateString } from 'tsledge-core';
 
 const router = express.Router();
 

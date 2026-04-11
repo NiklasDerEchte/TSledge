@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { AuthUserPayload } from './types';
 import { JwtRefreshSecret, JwtSecret } from '../../utils';
 import { AuthUserModel, AuthTokenBlocklistModel } from '../../models';
+import { AuthUserPayload } from 'tsledge-core';
 
 export interface TokenVerificationResult {
   /**
