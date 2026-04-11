@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { EXIT_CODE_GENERAL_ERROR, EXIT_CODE_INVALID_CONFIG, getCurrentDateString } from "tsledge-core-tests";
+import { EXIT_CODE_GENERAL_ERROR, EXIT_CODE_INVALID_CONFIG, getCurrentDateString } from "tsledge-core";
 
 /**
  * Connects to MongoDB using Mongoose

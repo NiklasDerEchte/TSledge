@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { QueryBuilder } from '../query-builder/index';
-import { DefaultResponseBody, KeysEnum } from 'tsledge-core-tests';
+import { DefaultResponseBody, KeysEnum } from 'tsledge-core';
 
 export interface FluentRequestBody {} // GET requests do not have body
 

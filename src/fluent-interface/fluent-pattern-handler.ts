@@ -6,7 +6,7 @@ import {
   FluentExecParams,
 } from './types';
 import { QueryBuilder } from '../query-builder/index';
-import { Codec, DefaultResponseBody, PromiseDefaultCodec } from 'tsledge-core-tests';
+import { Codec, DefaultResponseBody, PromiseDefaultCodec } from 'tsledge-core';
 
 interface FluentPatternParameter {
   id: string;

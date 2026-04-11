@@ -5,7 +5,7 @@ import { JwtRefreshSecret, JwtSecret } from '../../utils';
 import jwt from 'jsonwebtoken';
 import { jwtRefreshRequired } from './validation';
 import { AuthUserDocument, AuthUserModel, AuthTokenBlocklistModel } from '../../models';
-import { encodeToBase64, validateString } from 'tsledge-core-tests';
+import { encodeToBase64, validateString } from 'tsledge-core';
 
 const router = express.Router();
 
