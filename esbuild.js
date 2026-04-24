@@ -3,7 +3,10 @@ import * as esbuild from 'esbuild';
 const isDev = process.argv.includes('--watch');
 
 const config = {
-  entryPoints: ['./src/index.ts', './bin/repl.ts'], // Your entry point
+  entryPoints: {
+    index: './src/index.ts',
+    'bin/repl': './bin/repl.ts',
+  },
   bundle: true, // IMPORTANT: Allows imports without extensions, bundles everything into one file
   platform: 'node', // Optimized for Node.js or Deno
   format: 'esm', // Output as ES modules
@@ -14,7 +17,7 @@ const config = {
 };
 
 if (isDev) {
-  config.entryPoints.push('./tests/main.ts');
+  Object.assign(config.entryPoints, { 'tests/main': './tests/main.ts' });
 
   let ctx = await esbuild.context(config);
   await ctx.watch();
