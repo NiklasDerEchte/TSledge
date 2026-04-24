@@ -15,7 +15,7 @@ const sanitizeFilename = (name: string): string => name.replace(/[^a-zA-Z0-9._-]
  * @returns 
  */
 const diskStorage = (directory: string = 'files') => {
-  let uploadDir = path.resolve(process.cwd(), 'src', directory);
+  let uploadDir = path.resolve(process.cwd(), directory);
   fs.mkdirSync(uploadDir, { recursive: true });
   return multer.diskStorage({
     destination: (_req, _file, next) => next(null, uploadDir),
