@@ -180,16 +180,11 @@ export class QueryBuilder {
   ): string[] {
     const unset: string[] = [];
     schema.eachPath((path: string, schematype: any) => {
-      // If select is specified, only consider fields not in select or with select: false
-      if (
-        select &&
-        select.length > 0 &&
-        !select.includes(path) &&
-        schematype?.options?.select !== false
-      ) {
-        return;
-      }
+      // Check if the path is explicitly excluded from selection
       if (schematype?.options?.select === false) {
+        if (select && select.length > 0 && select.includes(path)) {
+          return;
+        }
         unset.push(prefix ? `${prefix}.${path}` : path);
       }
     });
