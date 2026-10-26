@@ -129,14 +129,12 @@ export class QueryBuilder {
         }
       }
 
-      if (
-        schematype instanceof mongoose.Schema.Types.Array &&
-        (schematype as any).caster?.options?.ref
-      ) {
-        const refModelName = (schematype as any).caster.options.ref;
+      const elementSchema = schematype.caster ?? schematype.embeddedSchemaType;
+      if (schematype instanceof mongoose.Schema.Types.Array && elementSchema?.options?.ref) {
+        const refModelName = elementSchema.options.ref;
         try {
           const refModel = mongoose.model(refModelName);
-          let alias = (schematype as any).caster.options?.alias ?? refModel.collection.name;
+          const alias = elementSchema.options.alias ?? refModel.collection.name;
           this.join(new JoinRelation(fullPath, refModel, alias));
         } catch (err) {
           console.warn(
